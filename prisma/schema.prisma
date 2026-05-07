@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ServiceStatus {
+  OPERATIONAL
+  DEGRADED
+  OUTAGE
+}
+
+enum IncidentStatus {
+  INVESTIGATING
+  IDENTIFIED
+  MONITORING
+  RESOLVED
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  CRITICAL
+}
+
+model Service {
+  id              String        @id @default(cuid())
+  slug            String        @unique
+  name            String
+  category        String
+  endpointUrl     String
+  region          String
+  status          ServiceStatus @default(OPERATIONAL)
+  lastHeartbeatAt DateTime?
+  lastLatencyMs   Int?
+  lastErrorRate   Float?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  checks          ServiceCheck[]
+  incidentLinks   IncidentService[]
+
+  @@index([status])
+  @@index([category])
+  @@index([region])
+}
+
+model ServiceCheck {
+  id         String        @id @default(cuid())
+  serviceId  String
+  checkedAt  DateTime      @default(now())
+  status     ServiceStatus
+  latencyMs  Int?
+  httpStatus Int?
+  errorRate  Float?
+  message    String?
+
+  service    Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, checkedAt])
+  @@index([status])
+}
+
+model Incident {
+  id         String          @id @default(cuid())
+  title      String
+  status     IncidentStatus  @default(INVESTIGATING)
+  severity   IncidentSeverity
+  startedAt  DateTime        @default(now())
+  resolvedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  services   IncidentService[]
+  events     IncidentEvent[]
+
+  @@index([status])
+  @@index([severity])
+}
+
+model IncidentEvent {
+  id         String   @id @default(cuid())
+  incidentId String
+  timestamp  DateTime @default(now())
+  severity   IncidentSeverity?
+  message    String
+  region     String?
+
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, timestamp])
+}
+
+model IncidentService {
+  incidentId String
+  serviceId  String
+
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([incidentId, serviceId])
+  @@index([serviceId])
+}

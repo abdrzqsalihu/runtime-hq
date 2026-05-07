@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Geist", system-ui, -apple-system, sans-serif;
+
+  /* Primary Accent: Electric Violet Mist */
+  --color-accent: #a78bfa;
+
+  /* Status Colors */
+  --color-success: #6ee7b7; /* Aurora Green */
+  --color-warning: #fbbf24; /* Amber Signal */
+  --color-error: #f472b6; /* Ice Magenta */
+
+  /* Base UI Colors (Dark Mode Only) */
+  --color-bg-dark: #070a12;
+  --color-surface-dark: #0e1420;
+  --color-border-dark: rgba(255, 255, 255, 0.06);
+  --color-border-dark-hover: rgba(255, 255, 255, 0.12);
+
+  /* Light Mode (Secondary/Minimal) */
+  --color-bg-light: #f9fafb;
+  --color-surface-light: #ffffff;
+  --color-border-light: #e5e7eb;
+  --color-border-light-hover: #d1d5db;
+
+  /* Standard mappings */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+}
+
+:root {
+  /* Default to Dark Mode */
+  --background: #070a12;
+  --foreground: #e5e7eb;
+  --border: rgba(255, 255, 255, 0.06);
+  --surface: #0e1420;
+}
+
+.light {
+  --background: #f9fafb;
+  --foreground: #111827;
+  --border: #e5e7eb;
+  --surface: #ffffff;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color 0.1s ease,
+    color 0.1s ease;
+  letter-spacing: -0.01em;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: 0.02em;
+  }
+}
+
+/* Infrastructure OS UI Utilities */
+.flat-border {
+  border: 1px solid var(--border);
+}
+
+.surface {
+  background-color: var(--surface);
+}
+
+.hover-surface:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.light .hover-surface:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Depth via opacity and borders, not shadows */
+.depth-1 {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+.depth-2 {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.depth-3 {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+  opacity: 0.5;
+}
+
+/* Minimal chart styling */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border);
+  stroke-dasharray: 0;
+}
+
+.recharts-text {
+  fill: #4b5563 !important;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Animation overrides for "Instant" feel */
+.instant-transition {
+  transition: none !important;
+}
