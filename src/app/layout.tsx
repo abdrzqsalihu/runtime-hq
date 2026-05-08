@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full dark`} suppressHydrationWarning>
-      <body className="flex h-full bg-background text-foreground transition-colors duration-200">
+      <body className="flex h-full bg-background text-foreground transition-colors duration-200 selection:bg-accent/30">
         <ThemeProvider>
           <Sidebar />
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">

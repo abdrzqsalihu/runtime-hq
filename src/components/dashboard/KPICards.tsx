@@ -68,7 +68,8 @@ export function KPICards() {
         <div
           key={i}
           className={cn(
-            "flex-1 p-5 border-r border-border group hover:bg-foreground/[0.01] transition-all cursor-crosshair relative overflow-hidden",
+            "flex-1 p-5 border-r border-border transition-all cursor-pointer relative overflow-hidden active:bg-foreground/[0.04] group",
+            "hover:bg-foreground/[0.02]",
             i === metrics.length - 1 && "border-r-0"
           )}
         >
@@ -79,7 +80,7 @@ export function KPICards() {
                 metric.status === "success" ? "bg-success" :
                   metric.status === "warning" ? "bg-warning" : "bg-error"
               )} />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/20 group-hover:text-foreground/40 transition-colors">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/40 group-hover:text-foreground/70 transition-colors">
                 {metric.label}
               </span>
             </div>
@@ -93,7 +94,15 @@ export function KPICards() {
           </div>
 
           <div className="flex items-end justify-between">
-            <p className="text-xl font-black text-foreground/80 tracking-tighter tabular-nums">{metric.value}</p>
+            <div>
+              <p className="text-xl font-black text-foreground/90 tracking-tighter tabular-nums">{metric.value}</p>
+              <p className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mt-0.5">
+                {metric.label === "SYSTEM_UPTIME" && "Global Availability"}
+                {metric.label === "NODES_ACTIVE" && "Global Edge Nodes"}
+                {metric.label === "LATENCY_AVG" && "P99 Network Delay"}
+                {metric.label === "ACTIVE_EVENTS" && "Requiring Attention"}
+              </p>
+            </div>
             <metric.icon className="w-3.5 h-3.5 text-foreground/10 group-hover:text-accent/30 transition-colors mb-1" />
           </div>
 
