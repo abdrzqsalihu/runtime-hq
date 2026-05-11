@@ -26,7 +26,8 @@ export default function LoginPage() {
         callbackURL: "/",
       }, {
         onSuccess: () => {
-          window.location.href = "/";
+          router.push("/");
+          router.refresh();
         },
         onError: (ctx) => {
           setError(ctx.error.message || "Authentication failed");
