@@ -6,43 +6,39 @@
   /* Primary Accent: Electric Violet Mist */
   --color-accent: #a78bfa;
 
-  /* Status Colors */
-  --color-success: #6ee7b7; /* Aurora Green */
-  --color-warning: #fbbf24; /* Amber Signal */
-  --color-error: #f472b6; /* Ice Magenta */
-
-  /* Base UI Colors (Dark Mode Only) */
-  --color-bg-dark: #070a12;
-  --color-surface-dark: #0e1420;
-  --color-border-dark: rgba(255, 255, 255, 0.06);
-  --color-border-dark-hover: rgba(255, 255, 255, 0.12);
-
-  /* Light Mode (Secondary/Minimal) */
-  --color-bg-light: #f9fafb;
-  --color-surface-light: #ffffff;
-  --color-border-light: #e5e7eb;
-  --color-border-light-hover: #d1d5db;
+  /* Status Colors - Optimized for Contrast */
+  --color-success: #10b981; /* Emeral 500 */
+  --color-warning: #f59e0b; /* Amber 500 */
+  --color-error: #ef4444; /* Red 500 */
 
   /* Standard mappings */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-border: var(--border);
   --color-surface: var(--surface);
+  --color-muted: var(--muted);
 }
 
 :root {
-  /* Default to Dark Mode */
+  /* Default to Dark Mode - High Density Infra Palette */
   --background: #070a12;
-  --foreground: #e5e7eb;
-  --border: rgba(255, 255, 255, 0.06);
+  --foreground: #f3f4f6; /* Gray 100 */
+  --border: rgba(255, 255, 255, 0.12);
   --surface: #0e1420;
+  --muted: #9ca3af; /* Gray 400 */
+  --input-bg: rgba(255, 255, 255, 0.03);
+  --placeholder: rgba(255, 255, 255, 0.2);
 }
 
 .light {
-  --background: #f9fafb;
-  --foreground: #111827;
-  --border: #e5e7eb;
+  /* Light Mode - Clean Ops Palette */
+  --background: #f8fafc; /* Slate 50 */
+  --foreground: #0f172a; /* Slate 900 */
+  --border: #cbd5e1; /* Slate 300 - Darker for visibility */
   --surface: #ffffff;
+  --muted: #475569; /* Slate 600 - Darker for readability */
+  --input-bg: #ffffff;
+  --placeholder: #94a3b8; /* Slate 400 */
 }
 
 body {
@@ -51,27 +47,72 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition:
-    background-color 0.1s ease,
-    color 0.1s ease;
   letter-spacing: -0.01em;
 }
 
 @layer base {
   * {
     border-color: var(--border);
-    box-shadow: none !important;
-    outline: none !important;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.02em;
   }
+
+  /* Improved focus states */
+  :focus-visible {
+    outline: 2px solid var(--color-accent) !important;
+    outline-offset: 2px;
+  }
+
+  input, select, textarea {
+    background-color: var(--input-bg);
+    color: var(--foreground);
+  }
+
+  ::placeholder {
+    color: var(--placeholder) !important;
+    opacity: 1;
+  }
+}
+
+/* Premium Cinematic View Transitions */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+  position: fixed;
+  inset: 0;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  animation: reveal-circular 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes reveal-circular {
+  from {
+    clip-path: circle(0% at 0% 100%);
+  }
+  to {
+    clip-path: circle(150% at 0% 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) {
+    animation: fade-in 0.3s ease-out;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Infrastructure OS UI Utilities */
@@ -83,23 +124,30 @@ body {
   background-color: var(--surface);
 }
 
-.hover-surface:hover {
-  background-color: rgba(255, 255, 255, 0.02);
+/* Interactive States */
+.interactive {
+  cursor: pointer;
+  transition: all 0.1s ease;
 }
 
-.light .hover-surface:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+.interactive:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Depth via opacity and borders, not shadows */
-.depth-1 {
-  border-color: rgba(255, 255, 255, 0.04);
+.light .interactive:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
-.depth-2 {
-  border-color: rgba(255, 255, 255, 0.08);
+
+.interactive:active {
+  transform: translateY(1px);
 }
+
 .depth-3 {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.light .depth-3 {
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 /* Scrollbar */
@@ -134,9 +182,4 @@ body {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-}
-
-/* Animation overrides for "Instant" feel */
-.instant-transition {
-  transition: none !important;
 }
