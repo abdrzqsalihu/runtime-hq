@@ -36,8 +36,7 @@ export default function RegisterPage() {
                 callbackURL: "/",
             }, {
                 onSuccess: () => {
-                    router.push("/");
-                    router.refresh();
+                    window.location.href = "/";
                 },
                 onError: (ctx) => {
                     setError(ctx.error.message || "Registration failed");
