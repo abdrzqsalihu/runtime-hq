@@ -11,9 +11,12 @@ import {
   Globe,
   Cpu,
   Database,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession, signOut } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Control Center", href: "/" },
@@ -26,6 +29,19 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login");
+          router.refresh();
+        },
+      },
+    });
+  };
 
   return (
     <div className="w-60 border-r border-border bg-background flex flex-col h-screen sticky top-0 z-20">
@@ -73,18 +89,29 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 bg-foreground/[0.01] border-t border-border">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-6 h-6 rounded-sm bg-accent/20 flex items-center justify-center text-[9px] font-black text-accent border border-accent/20">
-            SY
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-[10px] font-bold text-foreground/80 truncate uppercase tracking-tighter">system_root</span>
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-2.5 h-2.5 text-success" />
-              <span className="text-[8px] font-bold text-success/60 uppercase tracking-widest">Verified Access</span>
+      <div className="p-4 bg-foreground/[0.01] border-t border-border space-y-2">
+        <div className="flex items-center justify-between gap-3 px-2 py-2">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-7 h-7 rounded-sm bg-accent/20 flex items-center justify-center text-[9px] font-black text-accent border border-accent/20 shrink-0">
+              {session?.user?.name?.slice(0, 2).toUpperCase() || "OP"}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold text-foreground/80 truncate uppercase tracking-tighter">
+                {session?.user?.name || "system_root"}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-2.5 h-2.5 text-success" />
+                <span className="text-[8px] font-bold text-success/60 uppercase tracking-widest">Verified Access</span>
+              </div>
             </div>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="p-1.5 hover:bg-error/10 hover:text-error text-foreground/30 rounded-sm transition-all cursor-pointer"
+            title="Terminate Session"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </div>
