@@ -10,6 +10,7 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
     plugins: [
         dash()
     ]
