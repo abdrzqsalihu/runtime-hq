@@ -14,6 +14,15 @@ const createServiceSchema = z.object({
 
 export async function GET() {
   const services = await prisma.service.findMany({
+    include: {
+      checks: {
+        orderBy: { checkedAt: "desc" },
+        take: 10,
+      },
+      incidentLinks: {
+        include: { incident: true },
+      },
+    },
     orderBy: { updatedAt: "desc" },
   });
   return NextResponse.json({ services });
