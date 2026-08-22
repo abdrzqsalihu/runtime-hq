@@ -17,13 +17,37 @@ export async function GET(
 ) {
   const { serviceId } = await context.params;
 
-  const service = await prisma.service.findUnique({
+  let service = await prisma.service.findUnique({
     where: { id: serviceId },
     include: {
       checks: { orderBy: { checkedAt: "desc" }, take: 50 },
-      incidentLinks: { include: { incident: true } },
+      incidentLinks: true,
     },
   });
+
+  if (!service) {
+    service = await prisma.service.findUnique({
+      where: { slug: serviceId },
+      include: {
+        checks: { orderBy: { checkedAt: "desc" }, take: 50 },
+        incidentLinks: true,
+      },
+    });
+  }
+
+  if (service) {
+    const incidentIds = service.incidentLinks.map((il) => il.incidentId);
+    let incidents: any[] = [];
+    if (incidentIds.length > 0) {
+      incidents = await prisma.incident.findMany({
+        where: { id: { in: incidentIds } },
+      });
+    }
+    (service as any).incidentLinks = service.incidentLinks.map((il) => ({
+      ...il,
+      incident: incidents.find((i) => i.id === il.incidentId),
+    }));
+  }
 
   if (!service) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   return NextResponse.json({ service });
@@ -43,8 +67,24 @@ export async function PATCH(
     );
   }
 
-  const updated = await prisma.service.update({
+  let service = await prisma.service.findUnique({
     where: { id: serviceId },
+    select: { id: true },
+  });
+
+  if (!service) {
+    service = await prisma.service.findUnique({
+      where: { slug: serviceId },
+      select: { id: true },
+    });
+  }
+
+  if (!service) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+
+  const updated = await prisma.service.update({
+    where: { id: service.id },
     data: parsed.data,
   });
 
