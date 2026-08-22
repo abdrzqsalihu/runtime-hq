@@ -57,33 +57,33 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const [dashboardRes, servicesRes] = await Promise.all([
-          fetch("/api/dashboard"),
-          fetch("/api/services"),
-        ]);
+      const [dashboardRes, servicesRes] = await Promise.all([
+        fetch("/api/dashboard"),
+        fetch("/api/services"),
+      ]);
 
-        if (!dashboardRes.ok || !servicesRes.ok) {
-          throw new Error("Failed to fetch dashboard data");
-        }
-
-        const dashboardData = await dashboardRes.json();
-        const servicesData = await servicesRes.json();
-
-        setKpi(dashboardData.kpi);
-        setServices(servicesData.services);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
+      if (!dashboardRes.ok || !servicesRes.ok) {
+        throw new Error("Failed to fetch dashboard data");
       }
-    };
 
+      const dashboardData = await dashboardRes.json();
+      const servicesData = await servicesRes.json();
+
+      setKpi(dashboardData.kpi);
+      setServices(servicesData.services);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -224,7 +224,14 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <AddMonitorModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AddMonitorModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          setIsModalOpen(false);
+          fetchData();
+        }}
+      />
     </div>
   );
 }

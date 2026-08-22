@@ -124,7 +124,11 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
-            {services.map((service) => (
+            {services.map((service) => {
+              // If no checks yet, show AWAITING_CHECK instead of database status
+              const displayStatus = service.checks.length === 0 ? "AWAITING_CHECK" : service.status;
+
+              return (
               <React.Fragment key={service.id}>
                 <tr
                   onClick={() => setExpandedId(expandedId === service.id ? null : service.id)}
@@ -150,9 +154,19 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <div className={cn("w-1.5 h-1.5 rounded-full", statusStyles[service.status])} />
-                      <span className={cn("text-[9px] font-black uppercase tracking-widest", statusColors[service.status])}>
-                        {service.status}
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        displayStatus === "AWAITING_CHECK" ? "bg-foreground/40" :
+                        displayStatus === "OPERATIONAL" ? "bg-success" :
+                        displayStatus === "DEGRADED" ? "bg-warning" : "bg-error"
+                      )} />
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-widest",
+                        displayStatus === "AWAITING_CHECK" ? "text-foreground/40" :
+                        displayStatus === "OPERATIONAL" ? "text-success/80" :
+                        displayStatus === "DEGRADED" ? "text-warning/80" : "text-error/80"
+                      )}>
+                        {displayStatus === "AWAITING_CHECK" ? "Awaiting Check" : displayStatus}
                       </span>
                     </div>
                   </td>
@@ -282,7 +296,8 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
                   </tr>
                 )}
               </React.Fragment>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
