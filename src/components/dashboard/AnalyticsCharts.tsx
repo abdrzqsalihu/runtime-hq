@@ -1,25 +1,28 @@
 "use client";
 
-import { Activity, Zap, BarChart3 } from "lucide-react";
-import { cn, createSeededRng } from "@/lib/utils";
+import { Activity, BarChart3, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const services = [
-  { name: "PAYMENT_GATEWAY", region: "US_EAST", uptime: 99.99 },
-  { name: "AUTH_SERVICE", region: "EU_WEST", uptime: 99.95 },
-  { name: "EDGE_CDN", region: "GLOBAL", uptime: 100 },
-  { name: "STORAGE_NODE", region: "US_WEST", uptime: 98.2 },
-  { name: "API_MESH", region: "AP_SOUTH", uptime: 99.8 },
-];
+interface Service {
+  id: string;
+  name: string;
+  region: string;
+  status: "OPERATIONAL" | "DEGRADED" | "OUTAGE";
+  lastLatencyMs: number | null;
+  checks: Array<{
+    id: string;
+    checkedAt: string;
+    status: "OPERATIONAL" | "DEGRADED" | "OUTAGE";
+    latencyMs: number | null;
+  }>;
+}
+
+interface AnalyticsChartsProps {
+  services: Service[];
+  loading: boolean;
+}
 
 type HeartbeatState = "ok" | "degraded" | "error";
-
-function generateHeartbeats(seedKey: string, count: number): HeartbeatState[] {
-  const rand = createSeededRng(seedKey);
-  return Array.from({ length: count }, () => {
-    if (rand() <= 0.05) return "error";
-    return rand() <= 0.1 ? "degraded" : "ok";
-  });
-}
 
 function HeartbeatStrip({ data }: { data: HeartbeatState[] }) {
   return (
@@ -29,8 +32,11 @@ function HeartbeatStrip({ data }: { data: HeartbeatState[] }) {
           key={i}
           className={cn(
             "flex-1 rounded-[1px] transition-all hover:scale-y-125 hover:z-10",
-            state === "ok" ? "bg-success/30 hover:bg-success" :
-              state === "degraded" ? "bg-warning/30 hover:bg-warning" : "bg-error/30 hover:bg-error"
+            state === "ok"
+              ? "bg-success/30 hover:bg-success"
+              : state === "degraded"
+                ? "bg-warning/30 hover:bg-warning"
+                : "bg-error/30 hover:bg-error"
           )}
         />
       ))}
@@ -38,81 +44,154 @@ function HeartbeatStrip({ data }: { data: HeartbeatState[] }) {
   );
 }
 
-export function AnalyticsCharts() {
+export function AnalyticsCharts({ services, loading }: AnalyticsChartsProps) {
+  const getHeartbeatStates = (checks: Service["checks"]): HeartbeatState[] => {
+    const states: HeartbeatState[] = checks
+      .sort((a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime())
+      .slice(-30)
+      .map((check) => {
+        if (check.status === "OUTAGE") return "error";
+        if (check.status === "DEGRADED") return "degraded";
+        return "ok";
+      });
+
+    // Pad with 'ok' if we have fewer than 30 checks
+    while (states.length < 30) {
+      states.unshift("ok");
+    }
+
+    return states;
+  };
+
+  const getUptime = (checks: Service["checks"]): number => {
+    if (checks.length === 0) return 100;
+    const operational = checks.filter((c) => c.status === "OPERATIONAL").length;
+    return (operational / checks.length) * 100;
+  };
+
+  const statusCounts = services.reduce(
+    (acc, service) => {
+      acc[service.status] = (acc[service.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  const total = services.length || 1;
+  const operationalPercent = ((statusCounts.OPERATIONAL || 0) / total) * 100;
+  const degradedPercent = ((statusCounts.DEGRADED || 0) / total) * 100;
+  const outagePercent = ((statusCounts.OUTAGE || 0) / total) * 100;
+
+  const statusDistribution = [
+    { label: "OPERATIONAL_SERVICES", val: Math.round(operationalPercent), color: "var(--color-success)" },
+    { label: "DEGRADED_SERVICES", val: Math.round(degradedPercent), color: "var(--color-warning)" },
+    { label: "OUTAGE_SERVICES", val: Math.round(outagePercent), color: "var(--color-error)" },
+  ];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 border-b border-border">
-      {/* System Pulse Strip */}
+      {/* Service Heartbeats */}
       <div className="lg:col-span-2 p-6 border-r border-border bg-foreground/[0.01]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Activity className="w-4 h-4 text-accent" />
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">Heartbeat_Cluster_Signals</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">Service_Health_Signals</h3>
           </div>
           <div className="flex items-center gap-4 text-[9px] font-bold text-foreground/40 uppercase tracking-widest">
-            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-success/60" /> OK</div>
-            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-warning/60" /> DEGRADED</div>
-            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-error/60" /> ERROR</div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-success/60" /> OK
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-warning/60" /> DEGRADED
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-error/60" /> ERROR
+            </div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          {services.map((service) => (
-            <div key={service.name} className="group">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-black text-foreground/70 group-hover:text-accent transition-colors cursor-pointer">{service.name}</span>
-                  <span className="text-[8px] font-bold text-foreground/40 uppercase tracking-tighter">{service.region}</span>
+        {loading ? (
+          <div className="flex items-center justify-center h-32 text-foreground/40">
+            <p className="text-[9px] uppercase tracking-widest">Loading services...</p>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 gap-3">
+            <AlertCircle className="w-4 h-4 text-warning" />
+            <p className="text-[9px] font-bold text-foreground/40 uppercase tracking-widest">No services monitored yet</p>
+            <p className="text-[8px] text-foreground/30">Add your first service to get started</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {services.map((service) => (
+              <div key={service.id} className="group">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black text-foreground/70 group-hover:text-accent transition-colors cursor-pointer">
+                      {service.name}
+                    </span>
+                    <span className="text-[8px] font-bold text-foreground/40 uppercase tracking-tighter">{service.region}</span>
+                  </div>
+                  <span className="text-[9px] font-black text-foreground/60 tabular-nums">
+                    {getUptime(service.checks).toFixed(1)}%
+                  </span>
                 </div>
-                <span className="text-[9px] font-black text-foreground/60 tabular-nums">{service.uptime}%</span>
+                <HeartbeatStrip data={getHeartbeatStates(service.checks)} />
               </div>
-              <HeartbeatStrip data={generateHeartbeats(`${service.name}:${service.region}`, 60)} />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Event Density / Load Distribution */}
+      {/* Service Status Distribution */}
       <div className="p-6 bg-foreground/[0.02]">
         <div className="flex items-center gap-3 mb-8">
           <BarChart3 className="w-4 h-4 text-accent" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">Resource_Allocation</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">Service_Health_Distribution</h3>
         </div>
 
-        <div className="space-y-6">
-          {[
-            { label: "MEMORY_USAGE", val: 72, color: "var(--color-accent)" },
-            { label: "DISK_IO", val: 34, color: "var(--color-success)" },
-            { label: "NETWORK_THROUGHPUT", val: 88, color: "var(--color-warning)" },
-            { label: "REQUEST_QUEUES", val: 12, color: "var(--color-error)" },
-          ].map((item) => (
-            <div key={item.label} className="group cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-black text-foreground/40 uppercase tracking-widest group-hover:text-foreground transition-colors">{item.label}</span>
-                <span className="text-[10px] font-black text-foreground/70 tabular-nums">{item.val}%</span>
-              </div>
-              <div className="h-1.5 bg-foreground/[0.05] rounded-full overflow-hidden">
-                <div
-                  className="h-full transition-all duration-1000 ease-out group-hover:opacity-100"
-                  style={{
-                    width: `${item.val}%`,
-                    backgroundColor: item.color,
-                    opacity: 0.8
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-border/50">
-          <div className="flex items-center gap-2 text-warning/80">
-            <Zap className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-black uppercase tracking-widest">Anomaly Detection</span>
+        {loading ? (
+          <div className="flex items-center justify-center h-32 text-foreground/40">
+            <p className="text-[9px] uppercase tracking-widest">Loading...</p>
           </div>
-          <p className="text-[8px] font-bold text-muted uppercase tracking-[0.15em] mt-2 leading-relaxed">
-            No critical deviations found in current sync cycle.
-          </p>
-        </div>
+        ) : services.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 gap-2">
+            <p className="text-[9px] font-bold text-foreground/40 uppercase tracking-widest">No data available</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {statusDistribution.map((item) => (
+              <div key={item.label} className="group cursor-pointer">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-black text-foreground/40 uppercase tracking-widest group-hover:text-foreground transition-colors">
+                    {item.label}
+                  </span>
+                  <span className="text-[10px] font-black text-foreground/70 tabular-nums">{item.val}%</span>
+                </div>
+                <div className="h-1.5 bg-foreground/[0.05] rounded-full overflow-hidden">
+                  <div
+                    className="h-full transition-all duration-500 ease-out group-hover:opacity-100"
+                    style={{
+                      width: `${item.val}%`,
+                      backgroundColor: item.color,
+                      opacity: 0.8,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+
+            {/* Total Services Count */}
+            <div className="mt-8 pt-6 border-t border-border/50">
+              <div className="flex items-center gap-2 text-foreground/60">
+                <Activity className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Monitoring Status</span>
+              </div>
+              <p className="text-[10px] font-bold text-foreground/60 uppercase tracking-[0.15em] mt-3 leading-relaxed">
+                <span className="text-foreground/90">{total}</span> service{total !== 1 ? "s" : ""} monitored
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

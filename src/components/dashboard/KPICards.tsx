@@ -3,65 +3,58 @@
 import { Activity, Server, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const metrics = [
-  {
-    label: "SYSTEM_UPTIME",
-    value: "99.98%",
-    status: "success",
-    icon: Activity,
-    trend: [40, 45, 42, 48, 44, 50, 48],
-  },
-  {
-    label: "NODES_ACTIVE",
-    value: "24",
-    status: "success",
-    icon: Server,
-    trend: [20, 22, 21, 23, 24, 24, 24],
-  },
-  {
-    label: "LATENCY_AVG",
-    value: "142ms",
-    status: "warning",
-    icon: Clock,
-    trend: [150, 145, 160, 142, 138, 145, 142],
-  },
-  {
-    label: "ACTIVE_EVENTS",
-    value: "03",
-    status: "error",
-    icon: AlertTriangle,
-    trend: [1, 0, 2, 1, 3, 2, 3],
-  },
-];
-
-function MicroTrend({ data, color }: { data: number[], color: string }) {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min;
-  const width = 60;
-  const height = 16;
-  const points = data.map((d, i) => ({
-    x: (i / (data.length - 1)) * width,
-    y: height - ((d - min) / range) * height,
-  }));
-
-  const path = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
-
-  return (
-    <svg width={width} height={height} className="opacity-40 group-hover:opacity-100 transition-opacity">
-      <path
-        d={path}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+interface KPI {
+  totalUptimePercent: number;
+  activeServices: number;
+  avgResponseTimeMs: number | null;
+  activeIncidents: number;
 }
 
-export function KPICards() {
+interface KPICardsProps {
+  kpi: KPI | null;
+  loading: boolean;
+}
+
+export function KPICards({ kpi, loading }: KPICardsProps) {
+  const metrics = [
+    {
+      label: "SYSTEM_UPTIME",
+      value: kpi ? `${kpi.totalUptimePercent.toFixed(2)}%` : "—",
+      status: kpi ? (kpi.totalUptimePercent >= 99 ? "success" : kpi.totalUptimePercent >= 95 ? "warning" : "error") : "warning",
+      icon: Activity,
+      description: "Global Availability",
+    },
+    {
+      label: "NODES_ACTIVE",
+      value: kpi ? String(kpi.activeServices) : "—",
+      status: kpi && kpi.activeServices > 0 ? "success" : "warning",
+      icon: Server,
+      description: "Monitored Services",
+    },
+    {
+      label: "LATENCY_AVG",
+      value: kpi ? (kpi.avgResponseTimeMs ? `${kpi.avgResponseTimeMs}ms` : "—") : "—",
+      status: kpi
+        ? kpi.avgResponseTimeMs
+          ? kpi.avgResponseTimeMs < 200
+            ? "success"
+            : kpi.avgResponseTimeMs < 500
+              ? "warning"
+              : "error"
+          : "warning"
+        : "warning",
+      icon: Clock,
+      description: "Average Response Time",
+    },
+    {
+      label: "ACTIVE_INCIDENTS",
+      value: kpi ? String(kpi.activeIncidents).padStart(2, "0") : "—",
+      status: kpi ? (kpi.activeIncidents === 0 ? "success" : kpi.activeIncidents <= 2 ? "warning" : "error") : "warning",
+      icon: AlertTriangle,
+      description: "Requiring Attention",
+    },
+  ];
+
   return (
     <div className="flex border-b border-border bg-foreground/[0.01]">
       {metrics.map((metric, i) => (
@@ -70,37 +63,35 @@ export function KPICards() {
           className={cn(
             "flex-1 p-5 border-r border-border transition-all cursor-pointer relative overflow-hidden active:bg-foreground/[0.04] group",
             "hover:bg-foreground/[0.02]",
-            i === metrics.length - 1 && "border-r-0"
+            i === metrics.length - 1 && "border-r-0",
+            loading && "opacity-60"
           )}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                metric.status === "success" ? "bg-success" :
-                  metric.status === "warning" ? "bg-warning" : "bg-error"
-              )} />
+              <div
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  metric.status === "success"
+                    ? "bg-success"
+                    : metric.status === "warning"
+                      ? "bg-warning"
+                      : "bg-error"
+                )}
+              />
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/40 group-hover:text-foreground/70 transition-colors">
                 {metric.label}
               </span>
             </div>
-            <MicroTrend
-              data={metric.trend}
-              color={
-                metric.status === "success" ? "var(--color-success)" :
-                  metric.status === "warning" ? "var(--color-warning)" : "var(--color-error)"
-              }
-            />
           </div>
 
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-xl font-black text-foreground/90 tracking-tighter tabular-nums">{metric.value}</p>
+              <p className="text-xl font-black text-foreground/90 tracking-tighter tabular-nums">
+                {loading ? "..." : metric.value}
+              </p>
               <p className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mt-0.5">
-                {metric.label === "SYSTEM_UPTIME" && "Global Availability"}
-                {metric.label === "NODES_ACTIVE" && "Global Edge Nodes"}
-                {metric.label === "LATENCY_AVG" && "P99 Network Delay"}
-                {metric.label === "ACTIVE_EVENTS" && "Requiring Attention"}
+                {metric.description}
               </p>
             </div>
             <metric.icon className="w-3.5 h-3.5 text-foreground/10 group-hover:text-accent/30 transition-colors mb-1" />
