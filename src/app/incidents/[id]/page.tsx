@@ -367,15 +367,13 @@ export default function IncidentDetailPage() {
                       → {status}
                     </button>
                   ))}
-                  {incident.status !== "RESOLVED" && (
-                    <button
-                      onClick={() => handleStatusUpdate("RESOLVED")}
-                      disabled={updating}
-                      className="w-full text-left px-2 py-1.5 border border-error/20 rounded-sm text-[8px] font-black uppercase tracking-widest text-error bg-error/5 hover:border-error/40 transition-all disabled:opacity-50"
-                    >
-                      {isAutoDetected ? "🔴 MANUAL RESOLVE" : "🔴 RESOLVE"}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleStatusUpdate("RESOLVED")}
+                    disabled={updating}
+                    className="w-full text-left px-2 py-1.5 border border-error/20 rounded-sm text-[8px] font-black uppercase tracking-widest text-error bg-error/5 hover:border-error/40 transition-all disabled:opacity-50"
+                  >
+                    {isAutoDetected ? "🔴 MANUAL RESOLVE" : "🔴 RESOLVE"}
+                  </button>
                 </div>
               )}
             </div>
