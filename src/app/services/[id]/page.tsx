@@ -445,11 +445,12 @@ export default function ServiceDetailPage() {
               ) : (
                 <div className="space-y-2">
                   {incidentsForService.slice(0, 5).map((incident) => (
-                    <div
+                    <Link
                       key={incident.id}
-                      className="p-2 border border-border rounded-sm bg-background"
+                      href={`/incidents/${incident.id}`}
+                      className="p-2 border border-border rounded-sm bg-background hover:bg-foreground/[0.02] hover:border-accent/30 transition-all block"
                     >
-                      <p className="text-[8px] font-bold text-foreground/60 line-clamp-2">
+                      <p className="text-[8px] font-bold text-foreground/60 line-clamp-2 group-hover:text-accent">
                         {incident.title}
                       </p>
                       <div className="flex items-center gap-1 mt-1">
@@ -476,7 +477,7 @@ export default function ServiceDetailPage() {
                           {incident.status}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
