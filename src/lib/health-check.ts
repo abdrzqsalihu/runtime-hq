@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { ServiceStatus } from "@prisma/client/index.js";
+import { handleServiceStatusTransition } from "@/lib/incident-manager";
 
 async function checkUrl(url: string, timeoutMs: number) {
   const controller = new AbortController();
@@ -43,15 +44,16 @@ export interface CheckResult {
 export async function checkService(serviceId: string): Promise<CheckResult> {
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { id: true, endpointUrl: true },
+    select: { id: true, name: true, endpointUrl: true, status: true },
   });
 
   if (!service) {
     throw new Error("Service not found");
   }
 
+  const previousStatus = service.status;
   const check = await checkUrl(service.endpointUrl, 3000);
-  const status = mapStatus(check.httpStatus, check.ok);
+  const newStatus = mapStatus(check.httpStatus, check.ok);
   const errorRate = check.ok ? 0 : 100;
   const now = new Date();
 
@@ -59,7 +61,7 @@ export async function checkService(serviceId: string): Promise<CheckResult> {
     prisma.serviceCheck.create({
       data: {
         serviceId: service.id,
-        status,
+        status: newStatus,
         latencyMs: check.latencyMs,
         httpStatus: check.httpStatus ?? undefined,
         errorRate,
@@ -69,7 +71,7 @@ export async function checkService(serviceId: string): Promise<CheckResult> {
     prisma.service.update({
       where: { id: service.id },
       data: {
-        status,
+        status: newStatus,
         lastHeartbeatAt: now,
         lastLatencyMs: check.latencyMs,
         lastErrorRate: errorRate,
@@ -77,9 +79,17 @@ export async function checkService(serviceId: string): Promise<CheckResult> {
     }),
   ]);
 
+  // Handle automatic incident detection and resolution
+  await handleServiceStatusTransition(
+    service.id,
+    service.name,
+    previousStatus,
+    newStatus
+  );
+
   return {
     serviceId: service.id,
-    status,
+    status: newStatus,
     latencyMs: check.latencyMs,
     httpStatus: check.httpStatus,
     errorRate,

@@ -1,64 +1,181 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   CheckCircle2,
   ChevronRight,
   ShieldAlert,
   Terminal,
-  MoreHorizontal,
-  Info
+  Info,
+  Loader2,
+  AlertCircle,
+  Zap,
+  Eye,
+  Clock,
 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { DeclareIncidentModal } from "@/components/incidents/DeclareIncidentModal";
 
-const incidents = [
-  {
-    id: "EVENT_9821",
-    title: "DISTRIBUTED_API_LATENCY_SPIKE",
-    status: "Investigating",
-    severity: "Critical",
-    startedAt: "24m ago",
-    duration: "Ongoing",
-    affected: ["STRIPE_GATEWAY", "VERCEL_EDGE"],
-    rootCause: "PENDING_ANALYSIS",
-  },
-  {
-    id: "EVENT_9818",
-    title: "DB_POOL_EXHAUSTION_NODE_B",
-    status: "Resolved",
-    severity: "Medium",
-    startedAt: "14:20 UTC",
-    duration: "45m",
-    affected: ["SUPABASE_DB_CLUSTER"],
-    rootCause: "UNEXPECTED_TRAFFIC_SURGE",
-  },
-  {
-    id: "EVENT_9815",
-    title: "S3_OBJECT_STORAGE_TIMEOUT",
-    status: "Resolved",
-    severity: "Critical",
-    startedAt: "09:12 UTC",
-    duration: "4h 12m",
-    affected: ["AWS_US_EAST_1", "S3_STORAGE"],
-    rootCause: "REGIONAL_NETWORK_PARTITION",
-  },
-];
+interface Incident {
+  id: string;
+  title: string;
+  status: "INVESTIGATING" | "IDENTIFIED" | "MONITORING" | "RESOLVED";
+  severity: "LOW" | "MEDIUM" | "CRITICAL";
+  startedAt: string;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  services: Array<{ service: { name: string; slug: string } }>;
+  events: Array<{ id: string; message: string; timestamp: string }>;
+}
 
 export default function IncidentsPage() {
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchIncidents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch("/api/incidents");
+      if (!response.ok) throw new Error("Failed to fetch incidents");
+      const data = await response.json();
+      setIncidents(data.incidents || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
+  const calculateMetrics = () => {
+    const resolved = incidents.filter(
+      (i) => i.status === "RESOLVED" && i.resolvedAt,
+    );
+
+    let mttrMs = 0;
+    if (resolved.length > 0) {
+      const totalMs = resolved.reduce((sum, incident) => {
+        const start = new Date(incident.startedAt).getTime();
+        const end = new Date(incident.resolvedAt!).getTime();
+        return sum + (end - start);
+      }, 0);
+      mttrMs = Math.round(totalMs / resolved.length);
+    }
+
+    const formatDuration = (ms: number) => {
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      const hours = Math.floor(minutes / 60);
+      if (hours > 0) return `${hours}h ${minutes % 60}m`;
+      return `${minutes}m ${seconds}s`;
+    };
+
+    const severityCounts = {
+      CRITICAL: incidents.filter((i) => i.severity === "CRITICAL").length,
+      MEDIUM: incidents.filter((i) => i.severity === "MEDIUM").length,
+      LOW: incidents.filter((i) => i.severity === "LOW").length,
+    };
+
+    const total =
+      severityCounts.CRITICAL + severityCounts.MEDIUM + severityCounts.LOW;
+
+    // Count auto-detected incidents
+    const autoDetected = incidents.filter(
+      (i) =>
+        i.events.length > 0 &&
+        i.events[i.events.length - 1]?.message.includes("Outage detected"),
+    ).length;
+
+    return {
+      mttr: resolved.length > 0 ? formatDuration(mttrMs) : "No data",
+      density:
+        resolved.length > 0
+          ? (resolved.length / 7).toFixed(1) + "/day"
+          : "No data",
+      severityCounts,
+      total,
+      autoDetected,
+      autoResolved: resolved.filter((i) =>
+        i.events.some((e) => e.message.includes("Service recovered")),
+      ).length,
+    };
+  };
+
+  const metrics = calculateMetrics();
+  const activeIncidents = incidents.filter((i) => i.status !== "RESOLVED");
+  const autoDetectedIncidents = incidents.filter(
+    (i) =>
+      i.events.length > 0 &&
+      i.events[i.events.length - 1]?.message.includes("Outage detected"),
+  );
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const secondsAgo = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (secondsAgo < 60) return "just now";
+    if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
+    if (secondsAgo < 86400) return `${Math.floor(secondsAgo / 3600)}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const formatDuration = (start: string, end: string | null) => {
+    if (!end) return "Ongoing";
+    const startMs = new Date(start).getTime();
+    const endMs = new Date(end).getTime();
+    const ms = endMs - startMs;
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.floor((ms % 3600000) / 60000);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-[1600px] mx-auto flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <ShieldAlert className="w-3.5 h-3.5 text-error" />
-            <h2 className="text-[11px] font-black text-foreground/90 tracking-[0.2em] uppercase">Incident_Mission_Control</h2>
+            <h2 className="text-[11px] font-black text-foreground/90 tracking-[0.2em] uppercase">
+              Automatic_Incident_Detection
+            </h2>
           </div>
-          <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest ml-5">Vertical event timeline & failure analysis log</p>
+          <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest ml-5">
+            Vertical event timeline & failure analysis log
+          </p>
         </div>
-        <button className="flex items-center gap-2 bg-error text-white px-4 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-error/90 transition-all">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-error text-white px-4 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-error/90 transition-all"
+        >
           <Terminal className="w-3.5 h-3.5" />
           DECLARE_CRITICAL_EVENT
         </button>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 border border-error/20 bg-error/5 rounded-sm flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
+          <p className="text-[9px] text-error/60">{error}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Analytics / Stats Sidebar */}
@@ -70,19 +187,54 @@ export default function IncidentsPage() {
             </h3>
             <div className="space-y-6">
               <div>
-                <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">MTTR_AVG</div>
-                <div className="text-xl font-black text-foreground/80 tracking-tighter tabular-nums">42m 12s</div>
+                <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">
+                  MTTR_AVG
+                </div>
+                <div className="text-xl font-black text-foreground/80 tracking-tighter tabular-nums">
+                  {metrics.mttr}
+                </div>
               </div>
               <div>
-                <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">INCIDENT_DENSITY</div>
-                <div className="text-xl font-black text-foreground/80 tracking-tighter tabular-nums">0.8/day</div>
+                <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">
+                  FREQUENCY
+                </div>
+                <div className="text-xl font-black text-foreground/80 tracking-tighter tabular-nums">
+                  {metrics.density}
+                </div>
               </div>
               <div className="pt-4 border-t border-border/50">
-                <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-3">SEVERITY_DISTRIBUTION</div>
+                <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-3">
+                  BY_SEVERITY
+                </div>
                 <div className="flex h-1.5 rounded-full overflow-hidden bg-foreground/[0.03]">
-                  <div className="h-full bg-error" style={{ width: "20%" }} />
-                  <div className="h-full bg-warning" style={{ width: "45%" }} />
-                  <div className="h-full bg-success/40" style={{ width: "35%" }} />
+                  {metrics.total > 0 && (
+                    <>
+                      {metrics.severityCounts.CRITICAL > 0 && (
+                        <div
+                          className="h-full bg-error"
+                          style={{
+                            width: `${(metrics.severityCounts.CRITICAL / metrics.total) * 100}%`,
+                          }}
+                        />
+                      )}
+                      {metrics.severityCounts.MEDIUM > 0 && (
+                        <div
+                          className="h-full bg-warning"
+                          style={{
+                            width: `${(metrics.severityCounts.MEDIUM / metrics.total) * 100}%`,
+                          }}
+                        />
+                      )}
+                      {metrics.severityCounts.LOW > 0 && (
+                        <div
+                          className="h-full bg-success/40"
+                          style={{
+                            width: `${(metrics.severityCounts.LOW / metrics.total) * 100}%`,
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -90,83 +242,138 @@ export default function IncidentsPage() {
         </div>
 
         {/* Vertical Timeline */}
-        <div className="lg:col-span-3 space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-0 before:w-px before:bg-border/50">
-          {incidents.map((incident) => (
-            <div key={incident.id} className="relative pl-12">
-              {/* Timeline dot */}
-              <div className={cn(
-                "absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-background flex items-center justify-center z-10",
-                incident.status === "Investigating" ? "bg-error" : "bg-border"
-              )}>
-                {incident.status === "Investigating" ? (
-                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
-                ) : (
-                  <CheckCircle2 className="w-3 h-3 text-success" />
-                )}
+        <div className="lg:col-span-3">
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/80 mb-6">
+            Incident_Timeline
+          </h3>
+          <div className="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-0 before:w-px before:bg-border/50">
+            {incidents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-sm gap-3">
+                <CheckCircle2 className="w-8 h-8 text-success" />
+                <p className="text-[10px] text-foreground/30 uppercase font-bold">
+                  NO_INCIDENTS_DETECTED
+                </p>
+                <p className="text-[9px] text-foreground/20">
+                  All services are operating normally
+                </p>
               </div>
-
-              <div className="surface border border-border rounded-sm p-6 group hover:border-accent/30 transition-all">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-foreground/20">{incident.id}</span>
-                    <div className={cn(
-                      "px-2 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-widest border",
-                      incident.severity === "Critical" ? "text-error border-error/20 bg-error/5" : "text-warning border-warning/20 bg-warning/5"
-                    )}>
-                      {incident.severity}
-                    </div>
-                    <span className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest">{incident.startedAt}</span>
+            ) : (
+              incidents.map((incident) => (
+                <div key={incident.id} className="relative pl-12">
+                  {/* Timeline dot */}
+                  <div
+                    className={cn(
+                      "absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-background flex items-center justify-center z-10",
+                      incident.status !== "RESOLVED" ? "bg-error" : "bg-border",
+                    )}
+                  >
+                    {incident.status !== "RESOLVED" ? (
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+                    ) : (
+                      <CheckCircle2 className="w-3 h-3 text-success" />
+                    )}
                   </div>
-                  <button className="text-foreground/10 hover:text-foreground/40 transition-colors">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </div>
 
-                <div className="flex items-start justify-between gap-8">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-black text-foreground/80 uppercase tracking-tight mb-3 group-hover:text-accent transition-colors">
-                      {incident.title}
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {incident.affected.map(res => (
-                        <span key={res} className="text-[8px] font-black uppercase px-2 py-0.5 border border-border text-foreground/30 bg-foreground/[0.02]">
-                          {res}
+                  <Link
+                    href={`/incidents/${incident.id}`}
+                    className="surface border border-border rounded-sm p-6 group hover:border-accent/30 transition-all block"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-foreground/20">
+                          {incident.id.slice(0, 8)}
                         </span>
-                      ))}
-                    </div>
-                    <div className="p-4 bg-foreground/[0.02] border border-border/50 rounded-sm">
-                      <div className="text-[8px] font-black uppercase tracking-widest text-foreground/20 mb-1">Root_Cause_Analysis</div>
-                      <div className="text-[10px] font-bold text-foreground/60 uppercase tracking-tight">{incident.rootCause}</div>
-                    </div>
-                  </div>
-
-                  <div className="text-right min-w-24">
-                    <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">Duration</div>
-                    <div className="text-[11px] font-black text-foreground/60 tabular-nums uppercase">{incident.duration}</div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-border/30 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex -space-x-1.5">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="w-5 h-5 rounded-sm bg-foreground/10 border border-background flex items-center justify-center text-[8px] font-bold text-foreground/40 uppercase">
-                          {String.fromCharCode(64 + i)}
+                        <div
+                          className={cn(
+                            "px-2 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-widest border",
+                            incident.severity === "CRITICAL"
+                              ? "text-error border-error/20 bg-error/5"
+                              : incident.severity === "MEDIUM"
+                                ? "text-warning border-warning/20 bg-warning/5"
+                                : "text-success border-success/20 bg-success/5",
+                          )}
+                        >
+                          {incident.severity}
                         </div>
-                      ))}
+                        {/* Auto-detected badge */}
+                        {incident.events.length > 0 &&
+                          incident.events[
+                            incident.events.length - 1
+                          ]?.message.includes("Outage detected") && (
+                            <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded-sm bg-accent/10 text-accent border border-accent/20">
+                              Auto
+                            </span>
+                          )}
+                        <span className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest">
+                          {formatTime(incident.startedAt)}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[8px] font-bold text-foreground/20 uppercase tracking-widest">3 Responders_Active</span>
-                  </div>
-                  <button className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-accent hover:gap-2 transition-all">
-                    INSPECT_EVENT_FLOW
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+
+                    <div className="flex items-start justify-between gap-8">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-black text-foreground/80 uppercase tracking-tight mb-3 group-hover:text-accent transition-colors">
+                          {incident.title}
+                        </h3>
+                        {incident.services.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {incident.services.map((link) => (
+                              <span
+                                key={link.service.slug}
+                                className="text-[8px] font-black uppercase px-2 py-0.5 border border-border text-foreground/30 bg-foreground/[0.02]"
+                              >
+                                {link.service.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {incident.events.length > 0 && (
+                          <div className="p-4 bg-foreground/[0.02] border border-border/50 rounded-sm">
+                            <div className="text-[8px] font-black uppercase tracking-widest text-foreground/20 mb-1">
+                              Latest_Event
+                            </div>
+                            <div className="text-[10px] font-bold text-foreground/60 uppercase tracking-tight">
+                              {incident.events[0].message}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-right min-w-24">
+                        <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">
+                          Duration
+                        </div>
+                        <div className="text-[11px] font-black text-foreground/60 tabular-nums uppercase">
+                          {formatDuration(
+                            incident.startedAt,
+                            incident.resolvedAt,
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-border/30 flex items-center justify-between">
+                      <div className="text-[8px] font-bold text-foreground/20 uppercase tracking-widest">
+                        {incident.status}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-accent group-hover:gap-2 transition-all">
+                        INSPECT_EVENT_FLOW
+                        <ChevronRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </Link>
                 </div>
-              </div>
-            </div>
-          ))}
+              ))
+            )}
+          </div>
         </div>
       </div>
+
+      <DeclareIncidentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchIncidents}
+      />
     </div>
   );
 }
