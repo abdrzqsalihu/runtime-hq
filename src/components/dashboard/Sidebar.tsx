@@ -6,9 +6,7 @@ import {
   LayoutDashboard,
   Server,
   AlertCircle,
-  Bell,
   Settings,
-  Globe,
   Cpu,
   Database,
   ShieldCheck,
@@ -22,8 +20,6 @@ const navItems = [
   { icon: LayoutDashboard, label: "Control Center", href: "/" },
   { icon: Server, label: "Monitored Services", href: "/services" },
   { icon: AlertCircle, label: "Incident History", href: "/incidents" },
-  { icon: Bell, label: "Active Alerts", href: "/alerts" },
-  { icon: Globe, label: "Public Status Hub", href: "/status" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
