@@ -10,6 +10,16 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    socialProviders: {
+        google: {
+            clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || "",
+            clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || "",
+        },
+        github: {
+            clientId: process.env.GITHUB_OAUTH_CLIENT_ID || "",
+            clientSecret: process.env.GITHUB_OAUTH_CLIENT_SECRET || "",
+        },
+    },
     baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
     plugins: [
         dash()

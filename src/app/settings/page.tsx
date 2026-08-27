@@ -34,10 +34,10 @@ export default function SettingsPage() {
     });
   };
 
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return "Unknown";
+  const formatDate = (dateInput: string | Date | undefined) => {
+    if (!dateInput) return "Unknown";
     try {
-      const date = new Date(dateString);
+      const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
       return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
