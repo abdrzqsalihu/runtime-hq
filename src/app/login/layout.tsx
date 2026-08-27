@@ -38,14 +38,14 @@ export default function AuthLayout({
                         <div className="space-y-4">
                             <div className="flex items-center gap-2">
                                 <Terminal className="w-3.5 h-3.5 text-accent" />
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Global_Control_Plane</h3>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Service_Status</h3>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 {[
-                                    { label: "US-EAST-01", val: "OPERATIONAL", status: "success" },
-                                    { label: "EU-WEST-02", val: "OPERATIONAL", status: "success" },
-                                    { label: "AP-SOUTH-01", val: "DEGRADED", status: "warning" },
-                                    { label: "SA-EAST-01", val: "OPERATIONAL", status: "success" },
+                                    { label: "API Gateway", val: "OPERATIONAL", status: "success" },
+                                    { label: "Database", val: "OPERATIONAL", status: "success" },
+                                    { label: "Auth Service", val: "DEGRADED", status: "warning" },
+                                    { label: "Cache Layer", val: "OPERATIONAL", status: "success" },
                                 ].map((node) => (
                                     <div key={node.label} className="p-3 border border-border/40 rounded-sm bg-background/50 backdrop-blur-sm">
                                         <div className="text-[8px] font-black text-foreground/20 uppercase tracking-widest mb-1">{node.label}</div>
@@ -65,7 +65,7 @@ export default function AuthLayout({
                         <div className="space-y-4">
                             <div className="flex items-center gap-2">
                                 <Activity className="w-3.5 h-3.5 text-accent" />
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Live_Infrastructure_Pulse</h3>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Health_Check_Activity</h3>
                             </div>
                             <div className="h-32 w-full border border-border/40 rounded-sm bg-background/50 backdrop-blur-sm p-4 flex items-end gap-[3px]">
                                 {pulseData.map((height, i) => (
@@ -85,11 +85,11 @@ export default function AuthLayout({
                         {/* Mission Statement */}
                         <div className="space-y-3">
                             <h2 className="text-xl font-black text-foreground/80 tracking-tighter leading-tight">
-                                Unified Command for <br />
-                                <span className="text-accent">Distributed Infrastructure.</span>
+                                Keep an Eye on <br />
+                                <span className="text-accent">Your Services.</span>
                             </h2>
                             <p className="text-[11px] font-medium text-foreground/40 leading-relaxed max-w-sm uppercase tracking-wide">
-                                Secure, high-fidelity monitoring for the next generation of cloud operations. Verified by SRE teams worldwide.
+                                Monitor your applications and APIs. Runtime HQ checks them continuously and alerts you when something goes wrong.
                             </p>
                         </div>
                     </div>
@@ -102,8 +102,8 @@ export default function AuthLayout({
                             <ShieldCheck className="w-5 h-5 text-success/60" />
                         </div>
                         <div>
-                            <div className="text-[10px] font-black text-foreground/80 uppercase tracking-widest">Enterprise_Security_Standard</div>
-                            <div className="text-[9px] font-bold text-foreground/30 uppercase tracking-widest mt-0.5">AES-256 Encryption // SOC2 Compliant</div>
+                            <div className="text-[10px] font-black text-foreground/80 uppercase tracking-widest">Built_for_Developers</div>
+                            <div className="text-[9px] font-bold text-foreground/30 uppercase tracking-widest mt-0.5">Simple monitoring you can trust.</div>
                         </div>
                     </div>
                 </div>

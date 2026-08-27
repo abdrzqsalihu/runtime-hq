@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSession, signOut } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/lib/use-toast";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Control Center", href: "/" },
@@ -27,11 +28,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const router = useRouter();
+  const toast = useToast();
 
   const handleSignOut = async () => {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
+          toast.success("SESSION_TERMINATED", "Your Runtime HQ session has been closed.");
           router.push("/login");
           router.refresh();
         },
