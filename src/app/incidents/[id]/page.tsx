@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/lib/use-toast";
 
 interface IncidentEvent {
   id: string;
@@ -46,6 +47,7 @@ const STATUS_PROGRESSION = [
 ] as const;
 
 export default function IncidentDetailPage() {
+  const toast = useToast();
   const { id } = useParams();
   const router = useRouter();
   const incidentId = Array.isArray(id) ? id[0] : id;
@@ -101,11 +103,14 @@ export default function IncidentDetailPage() {
         });
         if (!response.ok) {
           const data = await response.json();
-          setUpdateError(data.message || "Failed to resolve incident");
+          const errorMsg = data.message || "Failed to resolve incident";
+          setUpdateError(errorMsg);
+          toast.error("STATUS_UPDATE_FAILED", errorMsg);
           return;
         }
         const data = await response.json();
         setIncident(data.incident);
+        toast.success("INCIDENT_RESOLVED", "The incident has been marked as resolved.");
       } else {
         const response = await fetch(`/api/incidents/${incidentId}`, {
           method: "PATCH",
@@ -114,16 +119,19 @@ export default function IncidentDetailPage() {
         });
         if (!response.ok) {
           const data = await response.json();
-          setUpdateError(data.message || "Failed to update incident");
+          const errorMsg = data.message || "Failed to update incident";
+          setUpdateError(errorMsg);
+          toast.error("STATUS_UPDATE_FAILED", errorMsg);
           return;
         }
         const data = await response.json();
         setIncident(data.incident);
+        toast.success("STATUS_UPDATED", `Incident is now ${newStatus.toLowerCase()}.`);
       }
     } catch (err) {
-      setUpdateError(
-        err instanceof Error ? err.message : "Failed to update incident"
-      );
+      const errorMsg = err instanceof Error ? err.message : "Failed to update incident";
+      setUpdateError(errorMsg);
+      toast.error("STATUS_UPDATE_FAILED", errorMsg);
     } finally {
       setUpdating(false);
     }
@@ -144,10 +152,13 @@ export default function IncidentDetailPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to add event");
+        const errorMsg = "Failed to add event";
+        toast.error("EVENT_ADD_FAILED", errorMsg);
+        throw new Error(errorMsg);
       }
 
       setNewEventMessage("");
+      toast.success("UPDATE_ADDED", "Your update has been recorded.");
       await fetchIncident();
     } catch (err) {
       console.error("Failed to add event:", err);
