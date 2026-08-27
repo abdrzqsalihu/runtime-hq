@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Globe, Shield, Terminal, Activity, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/lib/use-toast";
 
 interface AddMonitorModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface AddMonitorModalProps {
 }
 
 export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalProps) {
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
@@ -134,6 +136,7 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
       }
 
       setSuccess(true);
+      toast.success("SERVICE_ADDED", "Monitoring has started.");
 
       // Wait a moment to show success message
       setTimeout(() => {
@@ -155,7 +158,9 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
         onClose();
       }, 1500);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "An error occurred");
+      const message = err instanceof Error ? err.message : "An error occurred";
+      setSubmitError(message);
+      toast.error("SERVICE_CREATION_FAILED", message);
       setLoading(false);
     }
   };

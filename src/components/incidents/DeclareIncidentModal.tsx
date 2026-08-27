@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/lib/use-toast";
 
 interface Service {
   id: string;
@@ -21,6 +22,7 @@ export function DeclareIncidentModal({
   onClose: () => void;
   onSuccess?: () => void;
 }) {
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<Service[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
@@ -93,17 +95,22 @@ export function DeclareIncidentModal({
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.message || "Failed to create incident");
+        const errorMsg = data.message || "Failed to create incident";
+        setError(errorMsg);
+        toast.error("INCIDENT_CREATION_FAILED", errorMsg);
         return;
       }
 
       setSuccess(true);
+      toast.success("INCIDENT_CREATED", `"${title.trim()}" has been declared.`);
       setTimeout(() => {
         onClose();
         onSuccess?.();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create incident");
+      const errorMsg = err instanceof Error ? err.message : "Failed to create incident";
+      setError(errorMsg);
+      toast.error("INCIDENT_CREATION_FAILED", errorMsg);
     } finally {
       setLoading(false);
     }

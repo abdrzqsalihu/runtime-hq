@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/lib/use-toast";
 
 interface ServiceCheck {
   id: string;
@@ -57,6 +58,7 @@ interface Service {
 }
 
 export default function ServiceDetailPage() {
+  const toast = useToast();
   const { id } = useParams();
   const router = useRouter();
   const serviceId = Array.isArray(id) ? id[0] : id;
@@ -117,20 +119,29 @@ export default function ServiceDetailPage() {
         const data = await response.json();
         setCheckError(data.message);
         setRateLimitRemaining(data.retryAfter);
+        toast.info("CHECK_LIMITED", `Try again in ${data.retryAfter}s.`);
         return;
       }
 
       if (!response.ok) {
         const data = await response.json();
-        setCheckError(data.message || "Check failed");
+        const errorMsg = data.message || "Unable to reach the service.";
+        setCheckError(errorMsg);
+        toast.error("CHECK_FAILED", errorMsg);
         return;
       }
 
       const data = await response.json();
       setLastCheckResult(data.check);
+      toast.success(
+        "CHECK_COMPLETE",
+        `HTTP ${data.check.httpStatus} • ${data.check.latencyMs}ms`
+      );
       await fetchService();
     } catch (err) {
-      setCheckError(err instanceof Error ? err.message : "Check failed");
+      const errorMsg = err instanceof Error ? err.message : "Check failed";
+      setCheckError(errorMsg);
+      toast.error("CHECK_FAILED", errorMsg);
     } finally {
       setChecking(false);
     }

@@ -15,8 +15,10 @@ import { useTheme } from "@/lib/ThemeProvider";
 import { useSession, signOut } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/lib/use-toast";
 
 export default function SettingsPage() {
+  const toast = useToast();
   const { theme, toggleTheme } = useTheme();
   const { data: session } = useSession();
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function SettingsPage() {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
+          toast.success("SESSION_ENDED", "You've been signed out.");
           router.push("/login");
           router.refresh();
         },

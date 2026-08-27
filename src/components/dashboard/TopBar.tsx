@@ -1,13 +1,42 @@
 "use client";
 
-import { Search, Bell, Terminal, Sun, Moon, Cpu, Globe } from "lucide-react";
+import { Terminal, Sun, Moon, Bell } from "lucide-react";
 import { useTheme } from "@/lib/ThemeProvider";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function TopBar() {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
+  const router = useRouter();
+  const [activeServices, setActiveServices] = useState(0);
+  const [activeIncidents, setActiveIncidents] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [servicesRes, dashboardRes] = await Promise.all([
+          fetch("/api/services"),
+          fetch("/api/dashboard"),
+        ]);
+
+        if (servicesRes.ok) {
+          const data = await servicesRes.json();
+          setActiveServices(data.services?.length || 0);
+        }
+
+        if (dashboardRes.ok) {
+          const data = await dashboardRes.json();
+          setActiveIncidents(data.kpi?.activeIncidents || 0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);
@@ -33,32 +62,29 @@ export function TopBar() {
             System_Healthy
           </div>
           <div className="flex items-center gap-1.5">
-            <Globe className="w-3 h-3 text-foreground/40" />
-            Nodes_Online: 24
+            <Bell className="w-3 h-3" />
+            Active_Services: {activeServices}
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-foreground/40 group-focus-within:text-accent transition-colors" />
-          <input
-            type="text"
-            placeholder="EXECUTE_COMMAND..."
-            className="h-8 w-48 pl-9 pr-4 bg-foreground/[0.03] border border-border rounded-sm text-[9px] font-bold uppercase tracking-widest focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-all text-foreground"
-          />
-        </div>
-
+        <button
+          onClick={() => router.push("/incidents")}
+          className="p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-sm transition-colors relative cursor-pointer active:scale-95"
+          title={activeIncidents > 0 ? `${activeIncidents} active incident${activeIncidents !== 1 ? 's' : ''}` : "No active incidents"}
+        >
+          <Bell className="w-3.5 h-3.5" />
+          {activeIncidents > 0 && (
+            <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-error rounded-full animate-pulse" />
+          )}
+        </button>
         <button
           onClick={toggleTheme}
-          className="p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/[0.05] rounded-sm transition-colors cursor-pointer active:scale-95"
+          className="p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-sm transition-colors cursor-pointer active:scale-95"
           title="Toggle Theme"
         >
           {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-        </button>
-        <button className="p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/[0.05] rounded-sm transition-colors relative cursor-pointer active:scale-95">
-          <Bell className="w-3.5 h-3.5" />
-          <div className="absolute top-2 right-2 w-1 h-1 bg-error rounded-full animate-pulse" />
         </button>
       </div>
     </header>
