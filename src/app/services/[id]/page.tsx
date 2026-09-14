@@ -16,10 +16,12 @@ import {
   XCircle,
   Loader2,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/use-toast";
+import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
 
 interface ServiceCheck {
   id: string;
@@ -74,6 +76,8 @@ export default function ServiceDetailPage() {
   const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(
     null,
   );
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchService = async () => {
     try {
@@ -144,6 +148,29 @@ export default function ServiceDetailPage() {
       toast.error("CHECK_FAILED", errorMsg);
     } finally {
       setChecking(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!service) return;
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/services/${service.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to delete service");
+      }
+      toast.success("SERVICE_DELETED", "Service deleted.");
+      router.push("/services");
+    } catch (err) {
+      toast.error(
+        "DELETE_FAILED",
+        err instanceof Error ? err.message : "Failed to delete service"
+      );
+      setDeleting(false);
+      setDeleteModalOpen(false);
     }
   };
 
@@ -240,30 +267,39 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleCheckNow}
-          disabled={checking || rateLimitRemaining !== null}
-          className={cn(
-            "px-4 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer",
-            checking
-              ? "bg-foreground/10 text-foreground/40"
-              : rateLimitRemaining !== null
-                ? "bg-warning/10 text-warning/60 border border-warning/20"
-                : "bg-accent text-black hover:bg-accent/80",
-          )}
-        >
-          {checking ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              CHECKING...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-3.5 h-3.5" />
-              CHECK NOW
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCheckNow}
+            disabled={checking || rateLimitRemaining !== null}
+            className={cn(
+              "px-4 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer",
+              checking
+                ? "bg-foreground/10 text-foreground/40"
+                : rateLimitRemaining !== null
+                  ? "bg-warning/10 text-warning/60 border border-warning/20"
+                  : "bg-accent text-black hover:bg-accent/80",
+            )}
+          >
+            {checking ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                CHECKING...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3.5 h-3.5" />
+                CHECK NOW
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setDeleteModalOpen(true)}
+            title="Delete service"
+            className="p-2 border border-border rounded-sm text-foreground/20 hover:text-error hover:border-error/40 hover:bg-error/5 transition-all cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {checkError && (
@@ -511,6 +547,16 @@ export default function ServiceDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={deleteModalOpen}
+        title={`Delete ${service.name}?`}
+        description="This will permanently remove this monitor and its check history. This action cannot be undone."
+        confirmLabel="Delete Service"
+        loading={deleting}
+        onCancel={() => setDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

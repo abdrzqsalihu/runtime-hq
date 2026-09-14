@@ -100,3 +100,38 @@ export async function PATCH(
 
   return NextResponse.json({ service: updated });
 }
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ serviceId: string }> }
+) {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
+  const { serviceId } = await context.params;
+
+  let service = await prisma.service.findFirst({
+    where: { id: serviceId, userId: session.user.id },
+    select: { id: true },
+  });
+
+  if (!service) {
+    service = await prisma.service.findFirst({
+      where: { slug: serviceId, userId: session.user.id },
+      select: { id: true },
+    });
+  }
+
+  if (!service) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+
+  // Cascades to ServiceCheck (deleted) and IncidentService join rows
+  // (deleted) via the schema's onDelete: Cascade. Incident and IncidentEvent
+  // rows are untouched, preserving incident history.
+  await prisma.service.delete({ where: { id: service.id } });
+
+  return NextResponse.json({ success: true });
+}
