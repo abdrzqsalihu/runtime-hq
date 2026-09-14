@@ -57,7 +57,7 @@ async function main() {
 
   for (const s of seedServices) {
     await prisma.service.upsert({
-      where: { slug: s.slug },
+      where: { userId_slug: { userId: user.id, slug: s.slug } },
       update: {
         name: s.name,
         category: s.category,
@@ -103,8 +103,8 @@ async function main() {
       },
     }));
 
-  const stripe = await prisma.service.findUnique({ where: { slug: "stripe-api" } });
-  const vercel = await prisma.service.findUnique({ where: { slug: "aws-us-east-1" } });
+  const stripe = await prisma.service.findUnique({ where: { userId_slug: { userId: user.id, slug: "stripe-api" } } });
+  const vercel = await prisma.service.findUnique({ where: { userId_slug: { userId: user.id, slug: "aws-us-east-1" } } });
 
   const links = [
     stripe ? { incidentId: incident.id, serviceId: stripe.id } : null,

@@ -29,7 +29,7 @@ enum IncidentSeverity {
 
 model Service {
   id              String        @id @default(cuid())
-  slug            String        @unique
+  slug            String
   name            String
   category        String
   endpointUrl     String
@@ -47,6 +47,7 @@ model Service {
   checks          ServiceCheck[]
   incidentLinks   IncidentService[]
 
+  @@unique([userId, slug])
   @@index([status])
   @@index([category])
   @@index([region])
