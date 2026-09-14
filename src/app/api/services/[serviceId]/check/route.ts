@@ -15,14 +15,14 @@ export async function POST(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  let service = await prisma.service.findUnique({
-    where: { id: serviceId },
+  let service = await prisma.service.findFirst({
+    where: { id: serviceId, userId: session.user.id },
     select: { id: true },
   });
 
   if (!service) {
-    service = await prisma.service.findUnique({
-      where: { slug: serviceId },
+    service = await prisma.service.findFirst({
+      where: { slug: serviceId, userId: session.user.id },
       select: { id: true },
     });
   }

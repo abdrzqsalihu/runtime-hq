@@ -143,12 +143,12 @@ export default function LoginPage() {
                 <label className="text-[9px] font-black uppercase tracking-widest text-foreground/50">
                   Password
                 </label>
-                <Link
-                  href="#"
-                  className="text-[8px] font-black uppercase tracking-widest text-accent hover:text-accent/80 transition-colors"
+                <span
+                  className="text-[8px] font-black uppercase tracking-widest text-foreground/20 cursor-not-allowed"
+                  title="Password reset isn't available yet"
                 >
-                  Forgot Password?
-                </Link>
+                  Forgot Password? (Coming Soon)
+                </span>
               </div>
               <div className="relative group">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />

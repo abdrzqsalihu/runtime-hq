@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { ServiceStatus } from "@prisma/client/index.js";
 
 const createServiceSchema = z.object({
@@ -12,8 +13,14 @@ const createServiceSchema = z.object({
   status: z.nativeEnum(ServiceStatus).optional(),
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   const services = await prisma.service.findMany({
+    where: { userId: session.user.id },
     include: {
       checks: {
         orderBy: { checkedAt: "desc" },
@@ -28,7 +35,12 @@ export async function GET() {
   return NextResponse.json({ services });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = createServiceSchema.safeParse(body);
   if (!parsed.success) {
@@ -47,6 +59,7 @@ export async function POST(req: Request) {
       region: parsed.data.region,
       status: parsed.data.status ?? ServiceStatus.OPERATIONAL,
       lastHeartbeatAt: new Date(),
+      userId: session.user.id,
     },
   });
 

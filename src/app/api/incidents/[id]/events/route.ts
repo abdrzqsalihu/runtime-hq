@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { IncidentSeverity } from "@prisma/client";
 
 const createEventSchema = z.object({
@@ -13,6 +14,11 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   const { id } = await context.params;
   const body = await req.json().catch(() => null);
   const parsed = createEventSchema.safeParse(body);
@@ -24,8 +30,8 @@ export async function POST(
     );
   }
 
-  const incident = await prisma.incident.findUnique({
-    where: { id },
+  const incident = await prisma.incident.findFirst({
+    where: { id, userId: session.user.id },
   });
 
   if (!incident) {

@@ -8,7 +8,6 @@ import {
   AlertCircle,
   Settings,
   Cpu,
-  Database,
   ShieldCheck,
   LogOut
 } from "lucide-react";
@@ -71,21 +70,6 @@ export function Sidebar() {
             </Link>
           );
         })}
-
-        <div className="mt-8 px-3 mb-2 text-[9px] font-black uppercase tracking-[0.2em] text-foreground/40">Active Clusters</div>
-        {[
-          { label: "US-EAST-PRIMARY", status: "success" },
-          { label: "EU-WEST-SECONDARY", status: "success" },
-          { label: "AP-SOUTH-NODE", status: "warning" },
-        ].map((cluster) => (
-          <div key={cluster.label} className="flex items-center justify-between px-3 py-1.5 group cursor-pointer hover:bg-foreground/[0.02] rounded-sm transition-all">
-            <div className="flex items-center gap-2">
-              <Database className="w-3 h-3 text-foreground/30 group-hover:text-foreground/60" />
-              <span className="text-[9px] font-bold text-foreground/40 group-hover:text-foreground/70 uppercase tracking-tighter">{cluster.label}</span>
-            </div>
-            <div className={cn("w-1 h-1 rounded-full", cluster.status === "success" ? "bg-success" : "bg-warning")} />
-          </div>
-        ))}
       </nav>
 
       <div className="p-4 bg-foreground/[0.01] border-t border-border space-y-2">
@@ -99,8 +83,10 @@ export function Sidebar() {
                 {session?.user?.name || "system_root"}
               </span>
               <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-2.5 h-2.5 text-success" />
-                <span className="text-[8px] font-bold text-success/60 uppercase tracking-widest">Verified Access</span>
+                <ShieldCheck className={cn("w-2.5 h-2.5", session?.user?.emailVerified ? "text-success" : "text-foreground/30")} />
+                <span className={cn("text-[8px] font-bold uppercase tracking-widest", session?.user?.emailVerified ? "text-success/60" : "text-foreground/30")}>
+                  {session?.user?.emailVerified ? "Email Verified" : "Email Unverified"}
+                </span>
               </div>
             </div>
           </div>
