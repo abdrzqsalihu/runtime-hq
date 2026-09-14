@@ -3,6 +3,11 @@ import { PrismaClient, ServiceStatus, IncidentSeverity, IncidentStatus } from "@
 const prisma = new PrismaClient();
 
 async function main() {
+  const user = await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
+  if (!user) {
+    throw new Error("No user found to own seed data. Register an account first, then re-run the seed.");
+  }
+
   const seedServices = [
     {
       slug: "stripe-api",
@@ -63,7 +68,7 @@ async function main() {
         lastErrorRate: s.lastErrorRate ?? null,
         lastHeartbeatAt: s.lastHeartbeatAt,
       },
-      create: s,
+      create: { ...s, userId: user.id },
     });
   }
 
@@ -80,6 +85,7 @@ async function main() {
         status: IncidentStatus.INVESTIGATING,
         severity: IncidentSeverity.CRITICAL,
         startedAt: new Date(Date.now() - 24 * 60 * 1000),
+        userId: user.id,
         events: {
           create: [
             {

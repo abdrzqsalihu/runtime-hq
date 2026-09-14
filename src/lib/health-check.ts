@@ -44,7 +44,7 @@ export interface CheckResult {
 export async function checkService(serviceId: string): Promise<CheckResult> {
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { id: true, name: true, endpointUrl: true, status: true },
+    select: { id: true, name: true, endpointUrl: true, status: true, userId: true },
   });
 
   if (!service) {
@@ -83,6 +83,7 @@ export async function checkService(serviceId: string): Promise<CheckResult> {
   await handleServiceStatusTransition(
     service.id,
     service.name,
+    service.userId,
     previousStatus,
     newStatus
   );

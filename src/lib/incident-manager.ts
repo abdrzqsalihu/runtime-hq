@@ -34,6 +34,7 @@ function statusToSeverity(status: ServiceStatus): IncidentSeverity {
 export async function createAutoIncident(
   serviceId: string,
   serviceName: string,
+  userId: string,
   status: ServiceStatus
 ): Promise<any> {
   const severity = statusToSeverity(status);
@@ -48,6 +49,7 @@ export async function createAutoIncident(
       severity,
       status: IncidentStatus.INVESTIGATING,
       startedAt: new Date(),
+      userId,
       services: {
         create: [{ serviceId }],
       },
@@ -111,6 +113,7 @@ export async function resolveAutoIncident(incident: any): Promise<any> {
 export async function handleServiceStatusTransition(
   serviceId: string,
   serviceName: string,
+  userId: string,
   previousStatus: ServiceStatus | null,
   newStatus: ServiceStatus
 ): Promise<void> {
@@ -127,7 +130,7 @@ export async function handleServiceStatusTransition(
     // Transition to failure: create incident if none exists
     const existingIncident = await findActiveIncidentForService(serviceId);
     if (!existingIncident) {
-      await createAutoIncident(serviceId, serviceName, newStatus);
+      await createAutoIncident(serviceId, serviceName, userId, newStatus);
     }
   }
 

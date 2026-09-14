@@ -41,12 +41,16 @@ model Service {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   checks          ServiceCheck[]
   incidentLinks   IncidentService[]
 
   @@index([status])
   @@index([category])
   @@index([region])
+  @@index([userId])
 }
 
 model ServiceCheck {
@@ -75,11 +79,15 @@ model Incident {
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   services   IncidentService[]
   events     IncidentEvent[]
 
   @@index([status])
   @@index([severity])
+  @@index([userId])
 }
 
 model IncidentEvent {
@@ -116,6 +124,8 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  services      Service[]
+  incidents     Incident[]
 
   @@unique([email])
   @@map("user")

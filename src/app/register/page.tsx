@@ -172,7 +172,7 @@ export default function RegisterPage() {
 
                     <div className="pt-2">
                         <p className="text-[8px] font-medium text-foreground/30 uppercase tracking-widest leading-relaxed mb-4">
-                            By creating an account, you agree to the <span className="text-foreground/60 cursor-pointer hover:text-accent transition-colors underline">Terms_of_Service</span> and <span className="text-foreground/60 cursor-pointer hover:text-accent transition-colors underline">Privacy_Policy</span>.
+                            By creating an account, you agree to our Terms of Service and Privacy Policy.
                         </p>
                         <button
                             type="submit"

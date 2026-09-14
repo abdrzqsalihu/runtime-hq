@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IncidentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   const { id } = await context.params;
 
-  const incident = await prisma.incident.findUnique({
-    where: { id },
+  const incident = await prisma.incident.findFirst({
+    where: { id, userId: session.user.id },
   });
 
   if (!incident) {
