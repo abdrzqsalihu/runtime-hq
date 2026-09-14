@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/db";
-import { ServiceStatus, IncidentStatus, IncidentSeverity } from "@prisma/client";
+import { Prisma, ServiceStatus, IncidentStatus, IncidentSeverity, Incident } from "@prisma/client";
+
+/**
+ * Shape returned by createAutoIncident/resolveAutoIncident, which both
+ * include the incident's linked services and events.
+ */
+type IncidentWithRelations = Prisma.IncidentGetPayload<{
+  include: { services: true; events: true };
+}>;
 
 /**
  * Find the active (non-resolved) incident for a service.
@@ -7,7 +15,7 @@ import { ServiceStatus, IncidentStatus, IncidentSeverity } from "@prisma/client"
  */
 export async function findActiveIncidentForService(
   serviceId: string
-): Promise<any | null> {
+): Promise<Incident | null> {
   return await prisma.incident.findFirst({
     where: {
       status: { not: IncidentStatus.RESOLVED },
@@ -36,7 +44,7 @@ export async function createAutoIncident(
   serviceName: string,
   userId: string,
   status: ServiceStatus
-): Promise<any> {
+): Promise<IncidentWithRelations> {
   const severity = statusToSeverity(status);
   const title =
     status === ServiceStatus.OUTAGE
@@ -74,7 +82,7 @@ export async function createAutoIncident(
 /**
  * Resolve an active incident when a service recovers.
  */
-export async function resolveAutoIncident(incident: any): Promise<any> {
+export async function resolveAutoIncident(incident: Incident): Promise<IncidentWithRelations> {
   const now = new Date();
   const duration = now.getTime() - new Date(incident.startedAt).getTime();
   const durationMs = Math.round(duration / 1000);
