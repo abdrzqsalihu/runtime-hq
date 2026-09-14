@@ -2,10 +2,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, ExternalLink, Activity, Shield, Cpu, Mail, Box, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Plus, ExternalLink, Activity, Shield, Cpu, Mail, Box, AlertCircle, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AddMonitorModal } from "@/components/dashboard/AddMonitorModal";
+import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
+import { useToast } from "@/lib/use-toast";
 
 const groups = ["ALL_RESOURCES", "CORE_INFRA", "API_NODES", "MESSAGING_BUS", "THIRD_PARTY_APIS"];
 
@@ -42,12 +44,15 @@ const getUptime = (checks: ServiceCheck[]): string | null => {
 };
 
 export default function ServicesPage() {
+  const toast = useToast();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState("ALL_RESOURCES");
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchServices = async () => {
     try {
@@ -89,6 +94,30 @@ export default function ServicesPage() {
 
   const handleMonitorCreated = () => {
     fetchServices();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/services/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to delete service");
+      }
+      setServices((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      toast.success("SERVICE_DELETED", "Service deleted.");
+    } catch (err) {
+      toast.error(
+        "DELETE_FAILED",
+        err instanceof Error ? err.message : "Failed to delete service"
+      );
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
   };
 
   return (
@@ -248,12 +277,21 @@ export default function ServicesPage() {
                   )}
                 </div>
 
-                <Link
-                  href={`/services/${service.slug}`}
-                  className="px-4 py-2 border border-border rounded-sm text-[9px] font-black uppercase tracking-widest text-foreground/30 hover:text-accent hover:border-accent/40 hover:bg-accent/5 transition-all"
-                >
-                  INSPECT_NODE
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/services/${service.slug}`}
+                    className="px-4 py-2 border border-border rounded-sm text-[9px] font-black uppercase tracking-widest text-foreground/30 hover:text-accent hover:border-accent/40 hover:bg-accent/5 transition-all"
+                  >
+                    INSPECT_NODE
+                  </Link>
+                  <button
+                    onClick={() => setDeleteTarget(service)}
+                    title="Delete service"
+                    className="p-2 border border-border rounded-sm text-foreground/20 hover:text-error hover:border-error/40 hover:bg-error/5 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
                 {/* Accent hover line */}
                 <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -264,6 +302,16 @@ export default function ServicesPage() {
       )}
 
       <AddMonitorModal isOpen={isModalOpen} onClose={handleModalClose} onSuccess={handleMonitorCreated} />
+
+      <ConfirmDeleteModal
+        isOpen={deleteTarget !== null}
+        title={`Delete ${deleteTarget?.name ?? "Service"}?`}
+        description="This will permanently remove this monitor and its check history. This action cannot be undone."
+        confirmLabel="Delete Service"
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
