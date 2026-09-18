@@ -36,7 +36,10 @@ export function TopBar() {
     };
 
     fetchData();
-  }, []);
+    // Re-run on every navigation so the TopBar doesn't keep showing data from
+    // whatever page it first mounted on (it's a persistent layout element,
+    // not remounted per-route by the App Router).
+  }, [pathname]);
 
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);
