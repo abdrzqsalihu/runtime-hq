@@ -22,7 +22,7 @@ interface AnalyticsChartsProps {
   loading: boolean;
 }
 
-type HeartbeatState = "ok" | "degraded" | "error";
+type HeartbeatState = "ok" | "degraded" | "error" | "empty";
 
 function HeartbeatStrip({ data }: { data: HeartbeatState[] }) {
   return (
@@ -36,7 +36,9 @@ function HeartbeatStrip({ data }: { data: HeartbeatState[] }) {
               ? "bg-success/30 hover:bg-success"
               : state === "degraded"
                 ? "bg-warning/30 hover:bg-warning"
-                : "bg-error/30 hover:bg-error"
+                : state === "error"
+                  ? "bg-error/30 hover:bg-error"
+                  : "bg-foreground/10"
           )}
         />
       ))}
@@ -55,21 +57,26 @@ export function AnalyticsCharts({ services, loading }: AnalyticsChartsProps) {
         return "ok";
       });
 
-    // Pad with 'ok' if we have fewer than 30 checks
+    // Pad with 'empty' (no observation yet) if we have fewer than 30 checks
     while (states.length < 30) {
-      states.unshift("ok");
+      states.unshift("empty");
     }
 
     return states;
   };
 
-  const getUptime = (checks: Service["checks"]): number => {
-    if (checks.length === 0) return 100;
+  const getUptime = (checks: Service["checks"]): number | null => {
+    if (checks.length === 0) return null;
     const operational = checks.filter((c) => c.status === "OPERATIONAL").length;
     return (operational / checks.length) * 100;
   };
 
-  const statusCounts = services.reduce(
+  // Never-checked services have no verified status, so they're classified
+  // separately rather than folded into OPERATIONAL by their default DB value.
+  const checkedServices = services.filter((s) => s.checks.length > 0);
+  const uncheckedCount = services.length - checkedServices.length;
+
+  const statusCounts = checkedServices.reduce(
     (acc, service) => {
       acc[service.status] = (acc[service.status] || 0) + 1;
       return acc;
@@ -81,11 +88,13 @@ export function AnalyticsCharts({ services, loading }: AnalyticsChartsProps) {
   const operationalPercent = ((statusCounts.OPERATIONAL || 0) / total) * 100;
   const degradedPercent = ((statusCounts.DEGRADED || 0) / total) * 100;
   const outagePercent = ((statusCounts.OUTAGE || 0) / total) * 100;
+  const awaitingPercent = (uncheckedCount / total) * 100;
 
   const statusDistribution = [
     { label: "OPERATIONAL_SERVICES", val: Math.round(operationalPercent), color: "var(--color-success)" },
     { label: "DEGRADED_SERVICES", val: Math.round(degradedPercent), color: "var(--color-warning)" },
     { label: "OUTAGE_SERVICES", val: Math.round(outagePercent), color: "var(--color-error)" },
+    { label: "AWAITING_CHECK_SERVICES", val: Math.round(awaitingPercent), color: "var(--color-foreground)" },
   ];
 
   return (
@@ -122,22 +131,25 @@ export function AnalyticsCharts({ services, loading }: AnalyticsChartsProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {services.map((service) => (
-              <div key={service.id} className="group">
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black text-foreground/70 group-hover:text-accent transition-colors cursor-pointer">
-                      {service.name}
+            {services.map((service) => {
+              const uptime = getUptime(service.checks);
+              return (
+                <div key={service.id} className="group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black text-foreground/70 group-hover:text-accent transition-colors cursor-pointer">
+                        {service.name}
+                      </span>
+                      <span className="text-[8px] font-bold text-foreground/40 uppercase tracking-tighter">{service.region}</span>
+                    </div>
+                    <span className="text-[9px] font-black text-foreground/60 tabular-nums">
+                      {uptime !== null ? `${uptime.toFixed(1)}%` : "—"}
                     </span>
-                    <span className="text-[8px] font-bold text-foreground/40 uppercase tracking-tighter">{service.region}</span>
                   </div>
-                  <span className="text-[9px] font-black text-foreground/60 tabular-nums">
-                    {getUptime(service.checks).toFixed(1)}%
-                  </span>
+                  <HeartbeatStrip data={getHeartbeatStates(service.checks)} />
                 </div>
-                <HeartbeatStrip data={getHeartbeatStates(service.checks)} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

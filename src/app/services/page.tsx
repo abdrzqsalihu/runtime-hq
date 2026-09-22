@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, ExternalLink, Activity, Shield, Cpu, Mail, Box, AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { Search, Plus, ExternalLink, Activity, Shield, Cpu, Mail, Box, AlertCircle, Loader2, Trash2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AddMonitorModal } from "@/components/dashboard/AddMonitorModal";
@@ -29,7 +29,7 @@ interface Service {
   checks: ServiceCheck[];
 }
 
-const categoryIcons: Record<string, any> = {
+const categoryIcons: Record<string, LucideIcon> = {
   API_NODES: Shield,
   CORE_INFRA: Cpu,
   MESSAGING_BUS: Mail,
@@ -72,7 +72,9 @@ export default function ServicesPage() {
   };
 
   useEffect(() => {
-    fetchServices();
+    queueMicrotask(() => {
+      fetchServices();
+    });
   }, []);
 
   // Filter services based on group and search
