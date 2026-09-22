@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { AddMonitorModal } from "@/components/dashboard/AddMonitorModal";
 
 interface KPI {
-  totalUptimePercent: number;
+  totalUptimePercent: number | null;
   activeServices: number;
   avgResponseTimeMs: number | null;
   activeIncidents: number;
@@ -108,12 +108,18 @@ export default function DashboardPage() {
     });
   };
 
+  const checkedServices = services.filter((s) => s.checks.length > 0);
+  const hasUnverifiedService = services.some((s) => s.checks.length === 0);
+  const hasKnownDegradation = checkedServices.some((s) => s.status !== "OPERATIONAL");
+
   const systemStatus =
     services.length === 0
       ? "NO_DATA"
-      : services.every((s) => s.status === "OPERATIONAL")
-        ? "SYSTEM_OPTIMAL"
-        : "DEGRADATION_DETECTED";
+      : hasKnownDegradation
+        ? "DEGRADATION_DETECTED"
+        : hasUnverifiedService
+          ? "AWAITING_CHECKS"
+          : "SYSTEM_OPTIMAL";
 
   return (
     <div className="max-w-[1600px] mx-auto">
@@ -126,9 +132,15 @@ export default function DashboardPage() {
           </div>
           <p className="text-[10px] text-foreground/50 font-bold uppercase tracking-widest ml-5">
             Active Infrastructure Monitoring • Status:{" "}
-            <span className={systemStatus === "SYSTEM_OPTIMAL" ? "text-success/80 font-black" : systemStatus === "NO_DATA" ? "text-warning/80 font-black" : "text-error/80 font-black"}>
+            <span className={
+              systemStatus === "SYSTEM_OPTIMAL" ? "text-success/80 font-black" :
+              systemStatus === "NO_DATA" ? "text-warning/80 font-black" :
+              systemStatus === "AWAITING_CHECKS" ? "text-warning/80 font-black" :
+              "text-error/80 font-black"
+            }>
               {systemStatus === "SYSTEM_OPTIMAL" && "SYSTEM_OPTIMAL"}
               {systemStatus === "NO_DATA" && "NO_SERVICES"}
+              {systemStatus === "AWAITING_CHECKS" && "AWAITING_CHECKS"}
               {systemStatus === "DEGRADATION_DETECTED" && "DEGRADATION_DETECTED"}
             </span>
           </p>
@@ -186,7 +198,9 @@ export default function DashboardPage() {
           <div className="flex items-center gap-6 text-[9px] font-bold text-foreground/40 uppercase tracking-[0.2em]">
             <span>
               Service_Uptime:{" "}
-              <span className="text-success/60 tabular-nums">{kpi?.totalUptimePercent.toFixed(2) ?? "0"}%</span>
+              <span className="text-success/60 tabular-nums">
+                {kpi?.totalUptimePercent != null ? `${kpi.totalUptimePercent.toFixed(2)}%` : "—"}
+              </span>
             </span>
             <span>
               Active_Monitors:{" "}
@@ -204,7 +218,7 @@ export default function DashboardPage() {
               className={`w-1.5 h-1.5 rounded-full ${
                 systemStatus === "SYSTEM_OPTIMAL"
                   ? "bg-success"
-                  : systemStatus === "NO_DATA"
+                  : systemStatus === "NO_DATA" || systemStatus === "AWAITING_CHECKS"
                     ? "bg-warning"
                     : "bg-error"
               }`}
@@ -212,12 +226,13 @@ export default function DashboardPage() {
             <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${
               systemStatus === "SYSTEM_OPTIMAL"
                 ? "text-success/60"
-                : systemStatus === "NO_DATA"
+                : systemStatus === "NO_DATA" || systemStatus === "AWAITING_CHECKS"
                   ? "text-warning/60"
                   : "text-error/60"
             }`}>
               {systemStatus === "SYSTEM_OPTIMAL" && "Operational_State: Verified"}
               {systemStatus === "NO_DATA" && "Operational_State: No_Data"}
+              {systemStatus === "AWAITING_CHECKS" && "Operational_State: Awaiting_Checks"}
               {systemStatus === "DEGRADATION_DETECTED" && "Operational_State: Degraded"}
             </span>
           </div>

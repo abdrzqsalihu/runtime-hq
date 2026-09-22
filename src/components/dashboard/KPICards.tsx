@@ -4,7 +4,7 @@ import { Activity, Server, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KPI {
-  totalUptimePercent: number;
+  totalUptimePercent: number | null;
   activeServices: number;
   avgResponseTimeMs: number | null;
   activeIncidents: number;
@@ -19,8 +19,16 @@ export function KPICards({ kpi, loading }: KPICardsProps) {
   const metrics = [
     {
       label: "SYSTEM_UPTIME",
-      value: kpi ? `${kpi.totalUptimePercent.toFixed(2)}%` : "—",
-      status: kpi ? (kpi.totalUptimePercent >= 99 ? "success" : kpi.totalUptimePercent >= 95 ? "warning" : "error") : "warning",
+      value: kpi ? (kpi.totalUptimePercent !== null ? `${kpi.totalUptimePercent.toFixed(2)}%` : "—") : "—",
+      status: kpi
+        ? kpi.totalUptimePercent !== null
+          ? kpi.totalUptimePercent >= 99
+            ? "success"
+            : kpi.totalUptimePercent >= 95
+              ? "warning"
+              : "error"
+          : "warning"
+        : "warning",
       icon: Activity,
       description: "Global Availability",
     },

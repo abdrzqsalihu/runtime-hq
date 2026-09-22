@@ -13,7 +13,11 @@ export async function GET(req: NextRequest) {
     prisma.service.count({ where: { userId: session.user.id } }),
     prisma.service.findMany({
       where: { userId: session.user.id },
-      select: { lastLatencyMs: true, status: true },
+      select: {
+        lastLatencyMs: true,
+        status: true,
+        _count: { select: { checks: true } },
+      },
     }),
     prisma.incident.count({
       where: { userId: session.user.id, status: { not: IncidentStatus.RESOLVED } },
@@ -29,11 +33,14 @@ export async function GET(req: NextRequest) {
       ? Math.round(latencyValues.reduce((a, b) => a + b, 0) / latencyValues.length)
       : null;
 
-  const operationalCount = services.filter((s) => s.status === ServiceStatus.OPERATIONAL).length;
+  // A service with zero checks has never been verified, so it must not count
+  // toward the operational ratio in either direction (as healthy or as failing).
+  const checkedServices = services.filter((s) => s._count.checks > 0);
+  const operationalCount = checkedServices.filter((s) => s.status === ServiceStatus.OPERATIONAL).length;
   const uptimePercent =
-    serviceCount > 0
-      ? Number(((operationalCount / serviceCount) * 100).toFixed(2))
-      : 0;
+    checkedServices.length > 0
+      ? Number(((operationalCount / checkedServices.length) * 100).toFixed(2))
+      : null;
 
   return NextResponse.json({
     kpi: {

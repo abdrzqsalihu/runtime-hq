@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     include: {
       checks: {
         orderBy: { checkedAt: "desc" },
-        take: 10,
+        take: 30,
       },
       incidentLinks: {
         include: { incident: true },
