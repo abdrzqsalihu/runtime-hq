@@ -12,17 +12,18 @@ async function hasValidSession(request: NextRequest): Promise<boolean> {
 }
 
 export async function proxy(request: NextRequest) {
-    const isAuthPage = request.nextUrl.pathname.startsWith("/login") ||
-                      request.nextUrl.pathname.startsWith("/register");
+    const { pathname } = request.nextUrl;
+    const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
+    const isLanding = pathname === "/";
 
     const authenticated = await hasValidSession(request);
 
-    if (!authenticated && !isAuthPage) {
+    if (!authenticated && !isAuthPage && !isLanding) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
     if (authenticated && isAuthPage) {
-        return NextResponse.redirect(new URL("/", request.url));
+        return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
     return NextResponse.next();

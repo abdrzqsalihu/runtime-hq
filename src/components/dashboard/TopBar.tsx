@@ -43,7 +43,7 @@ export function TopBar() {
 
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);
-    if (parts.length === 0) return "DASHBOARD_CORE";
+    if (pathname === "/dashboard") return "DASHBOARD_CORE";
     return parts.join(" // ").toUpperCase();
   };
 

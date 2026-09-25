@@ -37,11 +37,11 @@ export default function RegisterPage() {
                 email,
                 password,
                 name,
-                callbackURL: "/",
+                callbackURL: "/dashboard",
             }, {
                 onSuccess: () => {
                     toast.success("AUTHENTICATION_SUCCESS", "Account created and session established.");
-                    window.location.href = "/";
+                    window.location.href = "/dashboard";
                 },
                 onError: (ctx) => {
                     const message = ctx.error.message || "Registration failed. Please try again.";
@@ -66,7 +66,7 @@ export default function RegisterPage() {
         try {
             await signIn.social({
                 provider,
-                callbackURL: "/",
+                callbackURL: "/dashboard",
             }, {
                 onSuccess: () => {
                     toast.success("AUTHENTICATION_SUCCESS", "Session established successfully.");

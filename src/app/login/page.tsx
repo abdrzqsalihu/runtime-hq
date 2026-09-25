@@ -30,14 +30,14 @@ export default function LoginPage() {
       await signIn.email({
         email,
         password,
-        callbackURL: "/",
+        callbackURL: "/dashboard",
       }, {
         onSuccess: () => {
           toast.success(
             "AUTHENTICATION_SUCCESS",
             "Session established successfully.",
           );
-          window.location.href = "/";
+          window.location.href = "/dashboard";
         },
         onError: (ctx) => {
           const message =
@@ -65,7 +65,7 @@ export default function LoginPage() {
       await signIn.social(
         {
           provider,
-          callbackURL: "/",
+          callbackURL: "/dashboard",
         },
         {
           onSuccess: () => {
