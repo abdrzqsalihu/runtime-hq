@@ -9,9 +9,10 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     // Define routes that should not have the dashboard shell
-    const isAuthRoute = pathname?.startsWith("/login") || pathname?.startsWith("/register");
+    const isPublicRoute =
+        pathname === "/" || pathname?.startsWith("/login") || pathname?.startsWith("/register");
 
-    if (isAuthRoute) {
+    if (isPublicRoute) {
         return <>{children}</>;
     }
 

@@ -11,8 +11,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Runtime HQ | Unified Service Status Monitor",
-  description: "Track the health of all third-party services in one place.",
+  title: {
+    default: "Runtime HQ — HTTP service monitoring with automatic incidents",
+    template: "%s | Runtime HQ",
+  },
+  description:
+    "Runtime HQ runs real HTTP checks against your services, records latency and status history, and opens an incident automatically when a service starts failing.",
 };
 
 export default function RootLayout({

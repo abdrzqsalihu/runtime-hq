@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/use-toast";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Control Center", href: "/" },
+  { icon: LayoutDashboard, label: "Control Center", href: "/dashboard" },
   { icon: Server, label: "Monitored Services", href: "/services" },
   { icon: AlertCircle, label: "Incident History", href: "/incidents" },
   { icon: Settings, label: "Settings", href: "/settings" },
