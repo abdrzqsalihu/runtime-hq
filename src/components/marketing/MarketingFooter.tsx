@@ -7,7 +7,7 @@ const linkClass =
 export function MarketingFooter({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <footer>
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex max-w-[1680px] flex-col gap-8 px-5 py-10 sm:px-8 lg:px-14 md:flex-row md:items-center md:justify-between">
         <BrandMark />
         <nav aria-label="Footer" className="flex flex-wrap gap-x-8 gap-y-3">
           <a href="#features" className={linkClass}>
