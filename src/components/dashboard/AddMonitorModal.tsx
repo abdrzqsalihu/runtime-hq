@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { X, Globe, Shield, Terminal, Activity, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/use-toast";
+import { useDialog } from "@/lib/use-dialog";
+import { apiErrorMessage } from "@/lib/api-error";
 
 interface AddMonitorModalProps {
   isOpen: boolean;
@@ -24,6 +26,11 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const titleId = useId();
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, () => {
+    if (!loading) onClose();
+  });
 
   if (!isOpen) return null;
 
@@ -52,6 +59,8 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
       newErrors.name = "Service name must be at least 2 characters";
     } else if (formData.name.length > 128) {
       newErrors.name = "Service name must be less than 128 characters";
+    } else if (generateSlug(formData.name).length < 2) {
+      newErrors.name = "Use at least 2 letters or numbers in the name";
     }
 
     if (!formData.url.trim()) {
@@ -120,23 +129,11 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || "Failed to create service";
-
-        // Handle specific errors
-        if (response.status === 400) {
-          if (errorData.issues) {
-            const issue = errorData.issues[0];
-            if (issue.path?.includes("slug")) {
-              throw new Error("A monitor with this name already exists");
-            }
-          }
-          throw new Error(errorMessage);
-        }
-        throw new Error(errorMessage);
+        throw new Error(apiErrorMessage(errorData, "Failed to create service"));
       }
 
       setSuccess(true);
-      toast.success("SERVICE_ADDED", "Monitoring has started.");
+      toast.success("SERVICE_ADDED", "Awaiting its first check.");
 
       // Wait a moment to show success message
       setTimeout(() => {
@@ -170,17 +167,25 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
     >
-      <div className="w-full max-w-lg bg-background border border-border rounded-sm shadow-2xl overflow-hidden flex flex-col">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-background border border-border rounded-sm shadow-2xl flex flex-col"
+      >
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-border bg-foreground/[0.01] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4 text-accent" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/90">
+            <h2 id={titleId} className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/90">
               Provision_New_Monitor
             </h2>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="p-1 hover:bg-foreground/5 rounded-sm transition-colors text-foreground/40 hover:text-foreground/80 cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -188,7 +193,7 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
         </div>
 
         {/* Modal Content */}
-        <div className="p-8 space-y-8">
+        <div className="p-5 sm:p-8 space-y-8">
           {/* Progress Indicator */}
           <div className="flex items-center justify-between px-2">
             {[1, 2, 3].map((i) => (
@@ -227,6 +232,7 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
                   <input
                     type="text"
                     placeholder="e.g. STRIPE_API_GATEWAY"
+                    aria-label="Service name"
                     className={cn(
                       "w-full bg-foreground/[0.03] border rounded-sm px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-1 transition-all text-foreground",
                       errors.name
@@ -251,6 +257,7 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
                     <input
                       type="text"
                       placeholder="https://api.example.com/v1/health"
+                      aria-label="Endpoint URL"
                       className={cn(
                         "w-full bg-foreground/[0.03] border rounded-sm pl-11 pr-4 py-3 text-[10px] font-bold tracking-widest focus:outline-none focus:ring-1 transition-all text-foreground",
                         errors.url
@@ -271,34 +278,7 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
 
             {step === 2 && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-foreground/60 ml-1">
-                      Region_Node
-                      <span className="text-error"> *</span>
-                    </label>
-                    <select
-                      className={cn(
-                        "w-full bg-foreground/[0.03] border rounded-sm px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-1 transition-all text-foreground cursor-pointer [&>option]:bg-surface [&>option]:text-foreground",
-                        errors.region
-                          ? "border-error focus:border-error focus:ring-error/20"
-                          : "border-border focus:border-accent focus:ring-accent/20"
-                      )}
-                      value={formData.region}
-                      onChange={(e) => {
-                        setFormData({ ...formData, region: e.target.value });
-                        if (errors.region) setErrors({ ...errors, region: "" });
-                      }}
-                    >
-                      <option value="">Select a region...</option>
-                      <option value="GLOBAL_EDGE">Global Edge</option>
-                      <option value="US_EAST_1">US East 1</option>
-                      <option value="EU_WEST_1">EU West 1</option>
-                      <option value="US_WEST_2">US West 2</option>
-                      <option value="AP_SOUTH_1">Asia Pacific South</option>
-                    </select>
-                    {errors.region && <p className="text-[8px] text-error">{errors.region}</p>}
-                  </div>
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <label className="text-[9px] font-black uppercase tracking-widest text-foreground/60 ml-1">
                       Service_Category
@@ -311,6 +291,7 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
                           ? "border-error focus:border-error focus:ring-error/20"
                           : "border-border focus:border-accent focus:ring-accent/20"
                       )}
+                      aria-label="Service category"
                       value={formData.category}
                       onChange={(e) => {
                         setFormData({ ...formData, category: e.target.value });
@@ -359,10 +340,6 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
                           <div className="text-[10px] font-bold text-foreground/60 uppercase">{formData.name}</div>
                         </div>
                         <div>
-                          <div className="text-[8px] font-black text-foreground/30 uppercase tracking-widest mb-1">Region</div>
-                          <div className="text-[10px] font-bold text-foreground/60 uppercase">{formData.region}</div>
-                        </div>
-                        <div>
                           <div className="text-[8px] font-black text-foreground/30 uppercase tracking-widest mb-1">Category</div>
                           <div className="text-[10px] font-bold text-foreground/60 uppercase">{formData.category}</div>
                         </div>
@@ -384,7 +361,7 @@ export function AddMonitorModal({ isOpen, onClose, onSuccess }: AddMonitorModalP
         </div>
 
         {/* Modal Footer */}
-        <div className="px-8 py-6 border-t border-border bg-foreground/[0.01] flex items-center justify-between">
+        <div className="px-5 sm:px-8 py-5 sm:py-6 border-t border-border bg-foreground/[0.01] flex items-center justify-between gap-3">
           <button
             onClick={() => {
               if (loading || success) return;

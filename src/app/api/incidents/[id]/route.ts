@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { z } from "zod";
+import { IncidentStatus } from "@prisma/client";
+import { setIncidentStatus } from "@/lib/incident-manager";
+
+const updateIncidentSchema = z.object({ status: z.nativeEnum(IncidentStatus) });
 
 export async function GET(
   req: NextRequest,
@@ -39,10 +44,15 @@ export async function PATCH(
 
   const { id } = await context.params;
   const body = await req.json().catch(() => null);
+  const parsed = updateIncidentSchema.safeParse(body);
 
-  if (!body || !body.status) {
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "INVALID_INPUT", message: "status is required" },
+      {
+        error: "INVALID_INPUT",
+        message: "status must be a valid incident status",
+        issues: parsed.error.issues,
+      },
       { status: 400 }
     );
   }
@@ -56,14 +66,10 @@ export async function PATCH(
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
 
-  const incident = await prisma.incident.update({
-    where: { id },
-    data: { status: body.status },
-    include: {
-      services: { include: { service: true } },
-      events: { orderBy: { timestamp: "desc" } },
-    },
-  });
+  const incident = await setIncidentStatus(id, parsed.data.status);
+  if (!incident) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
 
   return NextResponse.json({ incident });
 }

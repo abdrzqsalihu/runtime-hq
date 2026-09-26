@@ -22,6 +22,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/use-toast";
 import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
+import { apiErrorMessage } from "@/lib/api-error";
+import { checkSummary } from "@/lib/check-labels";
 
 interface ServiceCheck {
   id: string;
@@ -53,6 +55,9 @@ interface Service {
   lastHeartbeatAt: string | null;
   lastLatencyMs: number | null;
   lastErrorRate: number | null;
+  totalChecks: number;
+  uptime24h: number | null;
+  checks24h: number;
   createdAt: string;
   updatedAt: string;
   checks: ServiceCheck[];
@@ -129,7 +134,7 @@ export default function ServiceDetailPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        const errorMsg = data.message || "Unable to reach the service.";
+        const errorMsg = apiErrorMessage(data, "Unable to run the check.");
         setCheckError(errorMsg);
         toast.error("CHECK_FAILED", errorMsg);
         return;
@@ -137,10 +142,14 @@ export default function ServiceDetailPage() {
 
       const data = await response.json();
       setLastCheckResult(data.check);
-      toast.success(
-        "CHECK_COMPLETE",
-        `HTTP ${data.check.httpStatus} • ${data.check.latencyMs}ms`
-      );
+      const summary = checkSummary(data.check);
+      if (data.check.status === "OPERATIONAL") {
+        toast.success("CHECK_COMPLETE", summary);
+      } else if (data.check.status === "DEGRADED") {
+        toast.info("CHECK_DEGRADED", summary);
+      } else {
+        toast.error("CHECK_OUTAGE", summary);
+      }
       await fetchService();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Check failed";
@@ -160,7 +169,7 @@ export default function ServiceDetailPage() {
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || "Failed to delete service");
+        throw new Error(apiErrorMessage(data, "Failed to delete service"));
       }
       toast.success("SERVICE_DELETED", "Service deleted.");
       router.push("/services");
@@ -211,23 +220,22 @@ export default function ServiceDetailPage() {
     return null;
   }
 
-  const statusIcon = {
-    OPERATIONAL: CheckCircle,
-    DEGRADED: AlertTriangle,
-    OUTAGE: XCircle,
-  }[service.status];
+  // Status is only meaningful once a real check exists; until then the service is awaiting its first check.
+  const displayStatus = service.checks.length === 0 ? "AWAITING_CHECK" : service.status;
 
   const statusColor = {
     OPERATIONAL: "text-success/60",
     DEGRADED: "text-warning/60",
     OUTAGE: "text-error/60",
-  }[service.status];
+    AWAITING_CHECK: "text-foreground/60",
+  }[displayStatus];
 
   const statusBg = {
     OPERATIONAL: "bg-success",
     DEGRADED: "bg-warning",
     OUTAGE: "bg-error",
-  }[service.status];
+    AWAITING_CHECK: "bg-foreground/30",
+  }[displayStatus];
 
   const incidentsForService = service.incidentLinks.map(
     (link) => link.incident,
@@ -235,8 +243,8 @@ export default function ServiceDetailPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-6">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4 sm:gap-6 min-w-0">
           <Link
             href="/services"
             className="p-2 border border-border rounded-sm hover:bg-foreground/[0.02] transition-all text-foreground/20 hover:text-accent"
@@ -244,8 +252,8 @@ export default function ServiceDetailPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-black text-foreground/90 tracking-tighter uppercase">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-lg sm:text-xl font-black text-foreground/90 tracking-tighter uppercase break-words">
                 {service.name} <span className="text-foreground/10">//</span>{" "}
                 SERVICE_INSPECT
               </h2>
@@ -258,11 +266,11 @@ export default function ServiceDetailPage() {
                 )}
               >
                 <div className={cn("w-1 h-1 rounded-full", statusBg)} />
-                {service.status}
+                {displayStatus === "AWAITING_CHECK" ? "AWAITING CHECK" : displayStatus}
               </div>
             </div>
             <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-[0.2em] mt-1">
-              Region: {service.region} • Category: {service.category}
+              Category: {service.category}
             </p>
           </div>
         </div>
@@ -320,15 +328,43 @@ export default function ServiceDetailPage() {
       )}
 
       {lastCheckResult && (
-        <div className="mb-6 p-4 border border-success/20 bg-success/5 rounded-sm flex items-start gap-3">
-          <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+        <div
+          role="status"
+          className={cn(
+            "mb-6 p-4 border rounded-sm flex items-start gap-3",
+            lastCheckResult.status === "OPERATIONAL"
+              ? "border-success/20 bg-success/5"
+              : lastCheckResult.status === "DEGRADED"
+                ? "border-warning/20 bg-warning/5"
+                : "border-error/20 bg-error/5",
+          )}
+        >
+          {lastCheckResult.status === "OPERATIONAL" ? (
+            <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+          ) : lastCheckResult.status === "DEGRADED" ? (
+            <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+          ) : (
+            <XCircle className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
+          )}
           <div>
-            <p className="text-[10px] font-bold text-success uppercase">
-              Check Complete
+            <p
+              className={cn(
+                "text-[10px] font-bold uppercase",
+                lastCheckResult.status === "OPERATIONAL"
+                  ? "text-success"
+                  : lastCheckResult.status === "DEGRADED"
+                    ? "text-warning"
+                    : "text-error",
+              )}
+            >
+              {lastCheckResult.status === "OPERATIONAL"
+                ? "Check Passed"
+                : lastCheckResult.status === "DEGRADED"
+                  ? "Check Degraded"
+                  : "Check Failed"}
             </p>
-            <p className="text-[9px] text-success/60 mt-1">
-              HTTP {lastCheckResult.httpStatus} • {lastCheckResult.latencyMs}ms
-              • {lastCheckResult.message}
+            <p className="text-[9px] text-foreground/60 mt-1">
+              {checkSummary(lastCheckResult)}
             </p>
           </div>
         </div>
@@ -336,7 +372,7 @@ export default function ServiceDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-px bg-border border border-border rounded-sm overflow-hidden">
         {/* Main Panel */}
-        <div className="lg:col-span-3 bg-background p-8">
+        <div className="lg:col-span-3 bg-background p-4 sm:p-8">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -387,8 +423,7 @@ export default function ServiceDetailPage() {
                             )}
                           />
                           <span className="text-[9px] font-bold text-foreground/60">
-                            HTTP {check.httpStatus || "timeout"} •{" "}
-                            {check.latencyMs}ms
+                            {checkSummary(check)}
                           </span>
                         </div>
                         <span className="text-[8px] text-foreground/30 font-bold uppercase">
@@ -402,7 +437,7 @@ export default function ServiceDetailPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-4 gap-8 border-t border-border pt-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 border-t border-border pt-8">
             {[
               {
                 label: "LAST_LATENCY",
@@ -412,21 +447,21 @@ export default function ServiceDetailPage() {
                 icon: Clock,
               },
               {
-                label: "ERROR_RATE",
+                label: "UPTIME_24H",
                 value:
-                  service.lastErrorRate !== null
-                    ? `${service.lastErrorRate.toFixed(1)}%`
+                  service.uptime24h !== null
+                    ? `${service.uptime24h.toFixed(2)}%`
                     : "—",
                 icon: AlertCircle,
               },
               {
                 label: "TOTAL_CHECKS",
-                value: service.checks.length,
+                value: service.totalChecks,
                 icon: Activity,
               },
               {
-                label: "LAST_HEARTBEAT",
-                value: service.lastHeartbeatAt
+                label: "LAST_CHECK",
+                value: service.checks.length > 0 && service.lastHeartbeatAt
                   ? new Date(service.lastHeartbeatAt).toLocaleTimeString(
                       "en-US",
                       {
@@ -439,7 +474,7 @@ export default function ServiceDetailPage() {
                 icon: Clock,
               },
             ].map((m, i) => (
-              <div key={i} className="border-l border-border pl-6">
+              <div key={i} className="border-l border-border pl-4 sm:pl-6">
                 <div className="flex items-center gap-2 mb-2">
                   <m.icon className="w-3 h-3 text-foreground/20" />
                   <span className="text-[9px] font-black uppercase tracking-widest text-foreground/20">

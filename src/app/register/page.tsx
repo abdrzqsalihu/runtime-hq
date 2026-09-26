@@ -110,10 +110,11 @@ export default function RegisterPage() {
                         </div>
                     )}
                     <div className="space-y-1.5">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Full_Name</label>
+                        <label htmlFor="register-name" className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Full_Name</label>
                         <div className="relative group">
                             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />
                             <input
+                                id="register-name"
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
@@ -125,10 +126,11 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Email</label>
+                        <label htmlFor="register-email" className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Email</label>
                         <div className="relative group">
                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />
                             <input
+                                id="register-email"
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -141,11 +143,12 @@ export default function RegisterPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Password</label>
+                            <label htmlFor="register-password" className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Password</label>
                             <div className="relative group">
                                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />
                                 <input
                                     type="password"
+                                    id="register-password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -155,11 +158,12 @@ export default function RegisterPage() {
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Confirm_Password</label>
+                            <label htmlFor="register-confirm-password" className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">Confirm_Password</label>
                             <div className="relative group">
                                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />
                                 <input
                                     type="password"
+                                    id="register-confirm-password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
@@ -171,9 +175,6 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="pt-2">
-                        <p className="text-[8px] font-medium text-foreground/30 uppercase tracking-widest leading-relaxed mb-4">
-                            By creating an account, you agree to our Terms of Service and Privacy Policy.
-                        </p>
                         <button
                             type="submit"
                             disabled={loading || oauthLoading !== null}

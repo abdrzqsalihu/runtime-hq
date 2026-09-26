@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { IncidentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { setIncidentStatus } from "@/lib/incident-manager";
 
 export async function POST(
   req: NextRequest,
@@ -16,6 +17,7 @@ export async function POST(
 
   const incident = await prisma.incident.findFirst({
     where: { id, userId: session.user.id },
+    select: { id: true, status: true },
   });
 
   if (!incident) {
@@ -29,26 +31,10 @@ export async function POST(
     );
   }
 
-  const updated = await prisma.incident.update({
-    where: { id },
-    data: {
-      status: IncidentStatus.RESOLVED,
-      resolvedAt: new Date(),
-    },
-    include: {
-      services: { include: { service: true } },
-      events: { orderBy: { timestamp: "desc" } },
-    },
-  });
-
-  // Create a timeline event for the resolution
-  await prisma.incidentEvent.create({
-    data: {
-      incidentId: id,
-      message: "Incident resolved",
-      severity: updated.severity,
-    },
-  });
+  const updated = await setIncidentStatus(id, IncidentStatus.RESOLVED);
+  if (!updated) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
 
   return NextResponse.json({ incident: updated });
 }

@@ -1,26 +1,31 @@
 import { prisma } from "@/lib/db";
 import { ServiceStatus } from "@prisma/client/index.js";
 import { handleServiceStatusTransition } from "@/lib/incident-manager";
+import { guardedRequest, GuardedRequestError, type FailureKind } from "@/lib/url-safety";
 
-async function checkUrl(url: string, timeoutMs: number) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+const CHECK_TIMEOUT_MS = 3000;
+
+/** Stored in ServiceCheck.message. "OK" for success, otherwise why the check failed. */
+export type CheckMessage = "OK" | "HTTP_ERROR" | FailureKind;
+
+async function checkUrl(url: string) {
   const started = Date.now();
-
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-      signal: controller.signal,
-      headers: { "user-agent": "pulse-os-monitor/1.0" },
-    });
-    const latencyMs = Date.now() - started;
-    return { ok: res.ok, httpStatus: res.status, latencyMs };
-  } catch {
-    const latencyMs = Date.now() - started;
-    return { ok: false, httpStatus: null as number | null, latencyMs };
-  } finally {
-    clearTimeout(timer);
+    const res = await guardedRequest(url, { timeoutMs: CHECK_TIMEOUT_MS, maxRedirects: 5 });
+    return {
+      ok: res.status >= 200 && res.status < 300,
+      httpStatus: res.status,
+      latencyMs: res.latencyMs,
+      failure: null as FailureKind | null,
+    };
+  } catch (err) {
+    const failure: FailureKind = err instanceof GuardedRequestError ? err.kind : "NETWORK_ERROR";
+    return {
+      ok: false,
+      httpStatus: null as number | null,
+      latencyMs: Date.now() - started,
+      failure,
+    };
   }
 }
 
@@ -37,7 +42,7 @@ export interface CheckResult {
   latencyMs: number;
   httpStatus: number | null;
   errorRate: number;
-  message: string;
+  message: CheckMessage;
   checkedAt: Date;
 }
 
@@ -52,20 +57,22 @@ export async function checkService(serviceId: string): Promise<CheckResult> {
   }
 
   const previousStatus = service.status;
-  const check = await checkUrl(service.endpointUrl, 3000);
+  const check = await checkUrl(service.endpointUrl);
   const newStatus = mapStatus(check.httpStatus, check.ok);
   const errorRate = check.ok ? 0 : 100;
+  const message: CheckMessage = check.ok ? "OK" : (check.failure ?? "HTTP_ERROR");
   const now = new Date();
 
   await prisma.$transaction([
     prisma.serviceCheck.create({
       data: {
         serviceId: service.id,
+        checkedAt: now,
         status: newStatus,
         latencyMs: check.latencyMs,
         httpStatus: check.httpStatus ?? undefined,
         errorRate,
-        message: check.ok ? "OK" : "CHECK_FAILED",
+        message,
       },
     }),
     prisma.service.update({
@@ -94,7 +101,7 @@ export async function checkService(serviceId: string): Promise<CheckResult> {
     latencyMs: check.latencyMs,
     httpStatus: check.httpStatus,
     errorRate,
-    message: check.ok ? "OK" : "CHECK_FAILED",
+    message,
     checkedAt: now,
   };
 }

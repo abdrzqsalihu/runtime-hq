@@ -3,15 +3,16 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { ServiceStatus } from "@prisma/client/index.js";
+import { MAX_SERVICES_PER_USER, validateMonitoringUrl } from "@/lib/url-safety";
+import { LIST_CHECK_LIMIT, recentChecksByService, uptime24hByService } from "@/lib/service-queries";
 
+// Monitoring status is owned by the check engine, so the client cannot set it.
 const createServiceSchema = z.object({
   slug: z.string().min(2).max(64),
   name: z.string().min(2).max(128),
   category: z.string().min(2).max(64),
-  endpointUrl: z.string().url(),
-  region: z.string().min(2).max(64),
-  status: z.nativeEnum(ServiceStatus).optional(),
+  endpointUrl: z.string().min(1).max(2048),
+  region: z.string().min(2).max(64).default("GLOBAL_EDGE"),
 });
 
 export async function GET(req: NextRequest) {
@@ -22,18 +23,24 @@ export async function GET(req: NextRequest) {
 
   const services = await prisma.service.findMany({
     where: { userId: session.user.id },
-    include: {
-      checks: {
-        orderBy: { checkedAt: "desc" },
-        take: 30,
-      },
-      incidentLinks: {
-        include: { incident: true },
-      },
-    },
+    include: { incidentLinks: { include: { incident: true } } },
     orderBy: { updatedAt: "desc" },
   });
-  return NextResponse.json({ services });
+
+  const ids = services.map((s) => s.id);
+  const [checks, uptime] = await Promise.all([
+    recentChecksByService(ids, LIST_CHECK_LIMIT),
+    uptime24hByService(ids),
+  ]);
+
+  return NextResponse.json({
+    services: services.map((service) => ({
+      ...service,
+      checks: checks.get(service.id) ?? [],
+      uptime24h: uptime.get(service.id)?.uptimePercent ?? null,
+      checks24h: uptime.get(service.id)?.checks24h ?? 0,
+    })),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -51,16 +58,38 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const url = await validateMonitoringUrl(parsed.data.endpointUrl);
+  if (!url.ok) {
+    return NextResponse.json(
+      {
+        error: "INVALID_INPUT",
+        message: url.reason,
+        issues: [{ path: ["endpointUrl"], message: url.reason }],
+      },
+      { status: 400 }
+    );
+  }
+
+  const existingCount = await prisma.service.count({ where: { userId: session.user.id } });
+  if (existingCount >= MAX_SERVICES_PER_USER) {
+    return NextResponse.json(
+      {
+        error: "SERVICE_LIMIT_REACHED",
+        message: `You can monitor up to ${MAX_SERVICES_PER_USER} services. Delete one to add another.`,
+      },
+      { status: 403 }
+    );
+  }
+
   try {
+    // No status or heartbeat is set here: a new service has no check evidence until the first check.
     const created = await prisma.service.create({
       data: {
         slug: parsed.data.slug,
         name: parsed.data.name,
         category: parsed.data.category,
-        endpointUrl: parsed.data.endpointUrl,
+        endpointUrl: url.url.toString(),
         region: parsed.data.region,
-        status: parsed.data.status ?? ServiceStatus.OPERATIONAL,
-        lastHeartbeatAt: new Date(),
         userId: session.user.id,
       },
     });
@@ -75,6 +104,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "INVALID_INPUT",
+          message: "You already have a service with this name",
           issues: [
             {
               path: ["slug"],

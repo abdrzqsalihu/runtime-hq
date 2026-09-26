@@ -31,9 +31,22 @@ export function MarketingFooter({ isAuthenticated }: { isAuthenticated: boolean 
             </>
           )}
         </nav>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">
-          © {new Date().getFullYear()} Runtime HQ
-        </p>
+        <div className="flex flex-col gap-1.5 md:items-end">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">
+            Built by{" "}
+            <a
+              href="https://abdrzqsalihu.space/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent transition-colors hover:text-accent/70"
+            >
+              Abdulrazaq Salihu
+            </a>
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">
+            © {new Date().getFullYear()} Runtime HQ
+          </p>
+        </div>
       </div>
     </footer>
   );

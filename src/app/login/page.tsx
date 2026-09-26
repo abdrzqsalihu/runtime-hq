@@ -122,12 +122,13 @@ export default function LoginPage() {
           )}
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">
+              <label htmlFor="login-email" className="text-[9px] font-black uppercase tracking-widest text-foreground/50 ml-1">
                 Email
               </label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -140,7 +141,7 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between ml-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-foreground/50">
+                <label htmlFor="login-password" className="text-[9px] font-black uppercase tracking-widest text-foreground/50">
                   Password
                 </label>
                 <span
@@ -153,6 +154,7 @@ export default function LoginPage() {
               <div className="relative group">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />
                 <input
+                  id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -162,18 +164,6 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input type="checkbox" className="sr-only peer" />
-              <div className="w-3.5 h-3.5 border border-border rounded-[2px] bg-foreground/[0.03] peer-checked:bg-accent peer-checked:border-accent transition-all flex items-center justify-center">
-                <div className="w-1.5 h-1.5 bg-black rounded-[1px] opacity-0 peer-checked:opacity-100 transition-opacity" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-foreground/40 group-hover:text-foreground/60 transition-colors">
-                Stay_Signed_In
-              </span>
-            </label>
           </div>
 
           <button

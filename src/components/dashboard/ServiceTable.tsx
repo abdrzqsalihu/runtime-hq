@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { MoreHorizontal, ChevronDown, ChevronRight, Terminal, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { checkResultLabel } from "@/lib/check-labels";
 
 interface ServiceCheck {
   id: string;
@@ -32,6 +33,8 @@ interface Service {
   lastHeartbeatAt: string | null;
   lastLatencyMs: number | null;
   lastErrorRate: number | null;
+  uptime24h: number | null;
+  checks24h: number;
   checks: ServiceCheck[];
   incidentLinks: Array<{
     incidentId: string;
@@ -115,7 +118,6 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
             <tr className="bg-foreground/[0.02] border-b border-border">
               <th className="w-10 px-6 py-3"></th>
               <th className="px-6 py-3 text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em]">Service</th>
-              <th className="px-6 py-3 text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em]">Region</th>
               <th className="px-6 py-3 text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em]">Status</th>
               <th className="px-6 py-3 text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em]">Latency</th>
               <th className="px-6 py-3 text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em]">Error_Rate</th>
@@ -132,6 +134,16 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
               <React.Fragment key={service.id}>
                 <tr
                   onClick={() => setExpandedId(expandedId === service.id ? null : service.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpandedId(expandedId === service.id ? null : service.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-expanded={expandedId === service.id}
+                  aria-label={`${service.name}: ${displayStatus === "AWAITING_CHECK" ? "awaiting check" : displayStatus.toLowerCase()}. Toggle details`}
                   className={cn(
                     "hover:bg-foreground/[0.03] transition-colors group cursor-pointer",
                     expandedId === service.id && "bg-foreground/[0.04]"
@@ -148,9 +160,6 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
                     <span className="text-[10px] font-black text-foreground/80 tracking-tight uppercase group-hover:text-accent transition-colors">
                       {service.name}
                     </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[9px] font-bold text-foreground/50 uppercase tracking-tighter">{service.region}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -182,7 +191,7 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-[9px] font-bold text-foreground/40 uppercase tracking-tighter tabular-nums">
-                      {formatTimeAgo(service.lastHeartbeatAt)}
+                      {service.checks.length === 0 ? "Never" : formatTimeAgo(service.lastHeartbeatAt)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -192,7 +201,7 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
 
                 {expandedId === service.id && (
                   <tr className="bg-foreground/[0.05] border-t border-border/50">
-                    <td colSpan={8} className="px-12 py-6">
+                    <td colSpan={7} className="px-4 sm:px-12 py-6">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Recent Checks */}
                         <div>
@@ -222,11 +231,9 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
                                     <span className="text-[8px] font-black text-foreground/60 tabular-nums">
                                       {check.latencyMs ? `${check.latencyMs}ms` : "—"}
                                     </span>
-                                    {check.httpStatus && (
-                                      <span className={cn("text-[8px] font-bold px-1 rounded-sm", check.httpStatus < 400 ? "bg-success/10 text-success/80" : "bg-error/10 text-error/80")}>
-                                        {check.httpStatus}
-                                      </span>
-                                    )}
+                                    <span className={cn("text-[8px] font-bold px-1 rounded-sm", check.httpStatus !== null && check.httpStatus < 400 ? "bg-success/10 text-success/80" : "bg-error/10 text-error/80")}>
+                                      {checkResultLabel(check)}
+                                    </span>
                                   </div>
                                 </div>
                               ))}
@@ -284,8 +291,8 @@ export function ServiceTable({ services, loading }: ServiceTableProps) {
                                   <span className="text-foreground/60 truncate ml-2">{service.endpointUrl}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-foreground/40">Total Checks:</span>
-                                  <span className="text-foreground/60">{service.checks.length}</span>
+                                  <span className="text-foreground/40">Checks (24h):</span>
+                                  <span className="text-foreground/60">{service.checks24h}</span>
                                 </div>
                               </div>
                             </div>

@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       title: parsed.data.title,
       severity: parsed.data.severity,
       status: parsed.data.status ?? IncidentStatus.INVESTIGATING,
+      resolvedAt: parsed.data.status === IncidentStatus.RESOLVED ? new Date() : undefined,
       userId: session.user.id,
       services: uniqueServiceIds?.length
         ? {

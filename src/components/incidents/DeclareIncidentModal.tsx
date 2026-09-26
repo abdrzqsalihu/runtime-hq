@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { X, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/use-toast";
+import { useDialog } from "@/lib/use-dialog";
+import { apiErrorMessage } from "@/lib/api-error";
 
 interface Service {
   id: string;
@@ -23,6 +25,10 @@ export function DeclareIncidentModal({
   onSuccess?: () => void;
 }) {
   const toast = useToast();
+  const titleId = useId();
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, () => {
+    if (!loading) onClose();
+  });
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<Service[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
@@ -95,7 +101,7 @@ export function DeclareIncidentModal({
 
       if (!response.ok) {
         const data = await response.json();
-        const errorMsg = data.message || "Failed to create incident";
+        const errorMsg = apiErrorMessage(data, "Failed to create incident");
         setError(errorMsg);
         toast.error("INCIDENT_CREATION_FAILED", errorMsg);
         return;
@@ -119,15 +125,23 @@ export function DeclareIncidentModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background border border-border rounded-sm w-full max-w-2xl mx-4 shadow-lg">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-background border border-border rounded-sm w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-lg"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-[11px] font-black text-foreground/90 tracking-[0.2em] uppercase">
+          <h2 id={titleId} className="text-[11px] font-black text-foreground/90 tracking-[0.2em] uppercase">
             DECLARE_CRITICAL_EVENT
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="text-foreground/40 hover:text-foreground/80 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -135,7 +149,7 @@ export function DeclareIncidentModal({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {success ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <CheckCircle className="w-8 h-8 text-success" />
@@ -166,6 +180,7 @@ export function DeclareIncidentModal({
                         if (e.target.value.trim()) setTitleError(null);
                       }}
                       placeholder="e.g., Database connection pool exhaustion"
+                      aria-label="Incident title"
                       className={cn(
                         "w-full px-3 py-2 bg-foreground/[0.02] border rounded-sm text-[10px] font-bold uppercase tracking-widest",
                         "focus:outline-none focus:border-accent",
@@ -265,6 +280,7 @@ export function DeclareIncidentModal({
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="What do we know so far?"
+                      aria-label="Initial notes"
                       className="w-full px-3 py-2 bg-foreground/[0.02] border border-border rounded-sm text-[9px] font-bold uppercase tracking-widest focus:outline-none focus:border-accent"
                       rows={3}
                     />

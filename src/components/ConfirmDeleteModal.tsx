@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import { AlertTriangle, X, Loader2 } from "lucide-react";
+import { useDialog } from "@/lib/use-dialog";
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -22,6 +23,12 @@ export function ConfirmDeleteModal({
   onCancel,
   onConfirm,
 }: ConfirmDeleteModalProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, () => {
+    if (!loading) onCancel();
+  });
+
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -33,17 +40,26 @@ export function ConfirmDeleteModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
     >
-      <div className="w-full max-w-sm bg-background border border-border rounded-sm shadow-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-border bg-foreground/[0.01] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-error" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/90">
+      <div
+        ref={dialogRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className="w-full max-w-sm bg-background border border-border rounded-sm shadow-2xl overflow-hidden"
+      >
+        <div className="px-6 py-4 border-b border-border bg-foreground/[0.01] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangle className="w-4 h-4 text-error shrink-0" />
+            <h2 id={titleId} className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/90 break-words">
               {title}
             </h2>
           </div>
           <button
             onClick={onCancel}
             disabled={loading}
+            aria-label="Close dialog"
             className="p-1 hover:bg-foreground/5 rounded-sm transition-colors text-foreground/40 hover:text-foreground/80 cursor-pointer disabled:opacity-50"
           >
             <X className="w-4 h-4" />
@@ -51,7 +67,7 @@ export function ConfirmDeleteModal({
         </div>
 
         <div className="p-6">
-          <p className="text-[10px] font-bold text-foreground/60 uppercase tracking-widest leading-relaxed">
+          <p id={descriptionId} className="text-[10px] font-bold text-foreground/60 uppercase tracking-widest leading-relaxed">
             {description}
           </p>
         </div>

@@ -126,8 +126,7 @@ export default function AuthLayout({
                   Keep an Eye on <span className="text-accent">Your Services.</span>
                 </h2>
                 <p className="text-[11px] font-medium text-foreground/40 leading-relaxed max-w-xl uppercase tracking-wide">
-                  Monitor your applications and APIs. Runtime HQ checks them
-                  continuously and alerts you when something goes wrong.
+                  Monitor your applications and APIs. Runtime HQ checks them on a schedule, records every result, and opens an incident when a service starts failing.
                 </p>
               </div>
             </div>
