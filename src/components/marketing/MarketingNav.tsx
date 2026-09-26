@@ -34,7 +34,7 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-12 max-w-[1680px] items-center justify-between px-5 sm:px-8 lg:px-14">
         <BrandMark />
 
         <nav aria-label="Primary" className="hidden items-center gap-8 md:flex">

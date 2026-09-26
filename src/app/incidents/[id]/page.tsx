@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -33,6 +34,7 @@ interface Incident {
   severity: "LOW" | "MEDIUM" | "CRITICAL";
   startedAt: string;
   resolvedAt: string | null;
+  automatic: boolean;
   createdAt: string;
   updatedAt: string;
   services: Array<{ service: Service }>;
@@ -54,10 +56,8 @@ export default function IncidentDetailPage() {
 
   const [incident, setIncident] = useState<Incident | null>(null);
 
-  // Detect if incident is auto-detected (first event mentions "Outage detected")
-  const isAutoDetected = incident &&
-    incident.events.length > 0 &&
-    incident.events[incident.events.length - 1]?.message.includes("Outage detected");
+  // Opened by the monitoring engine (recorded on the incident, not inferred from event text)
+  const isAutoDetected = incident?.automatic === true;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -103,7 +103,7 @@ export default function IncidentDetailPage() {
         });
         if (!response.ok) {
           const data = await response.json();
-          const errorMsg = data.message || "Failed to resolve incident";
+          const errorMsg = apiErrorMessage(data, "Failed to resolve incident");
           setUpdateError(errorMsg);
           toast.error("STATUS_UPDATE_FAILED", errorMsg);
           return;
@@ -119,7 +119,7 @@ export default function IncidentDetailPage() {
         });
         if (!response.ok) {
           const data = await response.json();
-          const errorMsg = data.message || "Failed to update incident";
+          const errorMsg = apiErrorMessage(data, "Failed to update incident");
           setUpdateError(errorMsg);
           toast.error("STATUS_UPDATE_FAILED", errorMsg);
           return;
@@ -152,7 +152,7 @@ export default function IncidentDetailPage() {
       });
 
       if (!response.ok) {
-        const errorMsg = "Failed to add event";
+        const errorMsg = apiErrorMessage(await response.json().catch(() => null), "Failed to add event");
         toast.error("EVENT_ADD_FAILED", errorMsg);
         throw new Error(errorMsg);
       }
@@ -240,8 +240,8 @@ export default function IncidentDetailPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-black text-foreground/90 tracking-tighter uppercase">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-lg sm:text-xl font-black text-foreground/90 tracking-tighter uppercase break-words">
                 {incident.title}
               </h2>
               <div
@@ -260,7 +260,7 @@ export default function IncidentDetailPage() {
                 {incident.severity}
               </div>
             </div>
-            <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-[0.2em] mt-1">
+            <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-[0.2em] mt-1 break-all">
               ID: {incident.id} • Status: {incident.status}
             </p>
           </div>
@@ -276,7 +276,7 @@ export default function IncidentDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-px bg-border border border-border rounded-sm overflow-hidden">
         {/* Main content */}
-        <div className="lg:col-span-3 bg-background p-8">
+        <div className="lg:col-span-3 bg-background p-4 sm:p-8">
           {/* Timeline Events */}
           <div className="mb-8">
             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/80 mb-6">

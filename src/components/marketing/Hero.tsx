@@ -1,69 +1,61 @@
 import { CtaLink } from "./CtaLink";
-import { ProductPreview } from "./ProductPreview";
+import { HeroInstrument } from "./HeroInstrument";
+import { RuleLabel } from "./RuleLabel";
+import { WRAP } from "./layout";
 
-const FACTS = [
-  "HTTP GET checks",
-  "3-second timeout",
-  "Checked every 5 minutes",
-  "History stored per check",
-];
+const FACTS = ["HTTP GET", "3s timeout", "Every 5 minutes", "History per check"];
 
 export function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
-    <section className="border-b border-border">
-      <div className="mx-auto max-w-6xl px-5 pb-16 pt-14 sm:px-8 sm:pb-24 sm:pt-20">
-        <div className="max-w-3xl">
-          <div className="mb-6 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">
-              HTTP_Service_Monitoring
-            </span>
-          </div>
+    <section className="border-b border-border" aria-labelledby="hero-heading">
+      <div className={WRAP}>
+        <RuleLabel className="pt-6" left="RUNTIME_HQ" right="HTTP_SERVICE_MONITORING" />
 
-          <h1 className="text-4xl font-black leading-[1.05] tracking-tighter text-foreground sm:text-5xl lg:text-6xl">
-            Every check recorded.
-            <br />
-            Every failure an incident.
+        <div className="grid gap-10 pb-14 pt-10 sm:pt-14 lg:grid-cols-12 lg:items-end lg:gap-12 lg:pb-20 lg:pt-16">
+          <h1
+            id="hero-heading"
+            className="text-[clamp(2.9rem,8.6vw,9.25rem)] font-black leading-[0.9] tracking-[-0.045em] lg:col-span-8"
+          >
+            <span className="block">Know when</span>
+            <span className="block">your services</span>
+            <span className="block text-foreground/30">change.</span>
           </h1>
 
-          <p className="mt-6 max-w-2xl text-sm leading-relaxed text-foreground/60 sm:text-base">
-            Runtime HQ sends real HTTP requests to your services, records the status and latency of
-            each check, and opens an incident automatically when a healthy service starts failing.
-            When it recovers, the incident resolves and the history stays.
-          </p>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            {isAuthenticated ? (
-              <CtaLink href="/dashboard" arrow>
-                Open Dashboard
-              </CtaLink>
-            ) : (
-              <>
-                <CtaLink href="/register" arrow>
-                  Get started
+          <div className="lg:col-span-4 lg:pb-3">
+            <p className="max-w-md text-base leading-relaxed text-foreground/65 lg:text-lg">
+              Runtime HQ sends real HTTP requests to your services, records every result, and opens
+              an incident when a healthy service starts failing.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              {isAuthenticated ? (
+                <CtaLink href="/dashboard" arrow className="h-11">
+                  Open Dashboard
                 </CtaLink>
-                <CtaLink href="/login" variant="secondary">
-                  Sign in
-                </CtaLink>
-              </>
-            )}
+              ) : (
+                <>
+                  <CtaLink href="/register" arrow className="h-11">
+                    Get started
+                  </CtaLink>
+                  <CtaLink href="/login" variant="secondary" className="h-11">
+                    Sign in
+                  </CtaLink>
+                </>
+              )}
+            </div>
+            <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-1.5">
+              {FACTS.map((fact) => (
+                <li
+                  key={fact}
+                  className="text-[10px] font-black uppercase tracking-widest text-foreground/40"
+                >
+                  {fact}
+                </li>
+              ))}
+            </ul>
           </div>
-
-          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
-            {FACTS.map((fact) => (
-              <li
-                key={fact}
-                className="text-[10px] font-black uppercase tracking-widest text-foreground/40"
-              >
-                {fact}
-              </li>
-            ))}
-          </ul>
         </div>
 
-        <div className="mt-14 sm:mt-16">
-          <ProductPreview />
-        </div>
+        <HeroInstrument />
       </div>
     </section>
   );

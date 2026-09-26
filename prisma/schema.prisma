@@ -77,6 +77,8 @@ model Incident {
   severity   IncidentSeverity
   startedAt  DateTime        @default(now())
   resolvedAt DateTime?
+  // true when the monitoring engine opened this incident (only these are auto-resolved on recovery)
+  automatic  Boolean         @default(false)
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 

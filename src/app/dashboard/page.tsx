@@ -8,7 +8,8 @@ import { useState, useEffect } from "react";
 import { AddMonitorModal } from "@/components/dashboard/AddMonitorModal";
 
 interface KPI {
-  totalUptimePercent: number | null;
+  uptime24hPercent: number | null;
+  checks24h: number;
   activeServices: number;
   avgResponseTimeMs: number | null;
   activeIncidents: number;
@@ -25,6 +26,8 @@ interface Service {
   lastHeartbeatAt: string | null;
   lastLatencyMs: number | null;
   lastErrorRate: number | null;
+  uptime24h: number | null;
+  checks24h: number;
   createdAt: string;
   updatedAt: string;
   checks: Array<{
@@ -124,7 +127,7 @@ export default function DashboardPage() {
   return (
     <div className="max-w-[1600px] mx-auto">
       {/* OS Header Area */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Terminal className="w-3.5 h-3.5 text-accent" />
@@ -146,8 +149,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="text-right">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          <div className="sm:text-right">
             <div className="text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em]">Last_Update</div>
             <div className="text-[10px] font-bold text-foreground/60 tabular-nums uppercase">{getLastUpdateTime()}</div>
           </div>
@@ -178,7 +181,7 @@ export default function DashboardPage() {
       {/* Main OS Content Grid */}
       <div className="border border-border rounded-sm overflow-hidden bg-background">
         <KPICards kpi={kpi} loading={loading} />
-        <div className="p-8 border-b border-border">
+        <div className="p-4 sm:p-8 border-b border-border">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">System_Health_Telemetry</h3>
             <div className="flex items-center gap-4">
@@ -194,12 +197,12 @@ export default function DashboardPage() {
 
       {/* Footer / System Status Bar */}
       {!loading && (
-        <div className="mt-4 flex items-center justify-between px-2">
-          <div className="flex items-center gap-6 text-[9px] font-bold text-foreground/40 uppercase tracking-[0.2em]">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[9px] font-bold text-foreground/40 uppercase tracking-[0.2em]">
             <span>
-              Service_Uptime:{" "}
+              Uptime_24h:{" "}
               <span className="text-success/60 tabular-nums">
-                {kpi?.totalUptimePercent != null ? `${kpi.totalUptimePercent.toFixed(2)}%` : "—"}
+                {kpi?.uptime24hPercent != null ? `${kpi.uptime24hPercent.toFixed(2)}%` : "—"}
               </span>
             </span>
             <span>

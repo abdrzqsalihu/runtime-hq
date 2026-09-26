@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
+import { MotionStyles } from "@/components/marketing/MotionStyles";
 import { Hero } from "@/components/marketing/Hero";
-import { EvidenceSection } from "@/components/marketing/EvidenceSection";
-import { IncidentLifecycle } from "@/components/marketing/IncidentLifecycle";
+import { Evidence } from "@/components/marketing/Evidence";
+import { Lifecycle } from "@/components/marketing/Lifecycle";
 import { Capabilities } from "@/components/marketing/Capabilities";
-import { HowItWorks } from "@/components/marketing/HowItWorks";
 import { FinalCta } from "@/components/marketing/FinalCta";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
@@ -30,13 +30,13 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen w-full min-w-0 flex-1 bg-background text-foreground">
+      <MotionStyles />
       <MarketingNav isAuthenticated={isAuthenticated} />
       <main>
         <Hero isAuthenticated={isAuthenticated} />
-        <EvidenceSection />
-        <IncidentLifecycle />
+        <Evidence />
+        <Lifecycle />
         <Capabilities />
-        <HowItWorks />
         <FinalCta isAuthenticated={isAuthenticated} />
       </main>
       <MarketingFooter isAuthenticated={isAuthenticated} />

@@ -28,6 +28,10 @@ export default function SettingsPage() {
     setSigningOut(true);
     await signOut({
       fetchOptions: {
+        onError: () => {
+          setSigningOut(false);
+          toast.error("SIGN_OUT_FAILED", "Could not end the session. Try again.");
+        },
         onSuccess: () => {
           toast.success("SESSION_ENDED", "You've been signed out.");
           router.push("/login");
@@ -70,12 +74,12 @@ export default function SettingsPage() {
           </div>
           <div className="divide-y divide-border/50">
             {/* Display Name */}
-            <div className="p-6 flex items-start justify-between">
+            <div className="p-4 sm:p-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="text-[10px] font-bold text-foreground/80 uppercase tracking-tight">Display Name</div>
                 <p className="text-[9px] text-foreground/30 font-bold uppercase mt-1 tracking-widest">Your name in Runtime HQ</p>
               </div>
-              <div className="text-right">
+              <div className="sm:text-right break-all">
                 <div className="text-[10px] font-bold text-foreground/70 uppercase tracking-tight">
                   {session?.user?.name || "—"}
                 </div>
@@ -86,12 +90,12 @@ export default function SettingsPage() {
             </div>
 
             {/* Email */}
-            <div className="p-6 flex items-start justify-between">
+            <div className="p-4 sm:p-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="text-[10px] font-bold text-foreground/80 uppercase tracking-tight">Email Address</div>
                 <p className="text-[9px] text-foreground/30 font-bold uppercase mt-1 tracking-widest">Your account email</p>
               </div>
-              <div className="text-right">
+              <div className="sm:text-right break-all">
                 <div className="text-[10px] font-bold text-foreground/70 uppercase tracking-tight">
                   {session?.user?.email || "—"}
                 </div>
@@ -102,12 +106,12 @@ export default function SettingsPage() {
             </div>
 
             {/* Account Created */}
-            <div className="p-6 flex items-start justify-between">
+            <div className="p-4 sm:p-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="text-[10px] font-bold text-foreground/80 uppercase tracking-tight">Account Created</div>
                 <p className="text-[9px] text-foreground/30 font-bold uppercase mt-1 tracking-widest">When you joined</p>
               </div>
-              <div className="text-right">
+              <div className="sm:text-right break-all">
                 <div className="text-[10px] font-bold text-foreground/70 uppercase tracking-tight">
                   {formatDate(session?.user?.createdAt)}
                 </div>
@@ -122,7 +126,7 @@ export default function SettingsPage() {
             <Cpu className="w-3.5 h-3.5 text-accent" />
             <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Appearance</h3>
           </div>
-          <div className="p-6 flex items-center justify-between">
+          <div className="p-4 sm:p-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[10px] font-bold text-foreground/80 uppercase tracking-tight">Theme Mode</div>
               <p className="text-[9px] text-foreground/30 font-bold uppercase mt-1 tracking-widest">Switch between dark and light theme</p>
@@ -143,7 +147,7 @@ export default function SettingsPage() {
             <Shield className="w-3.5 h-3.5 text-accent" />
             <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Security</h3>
           </div>
-          <div className="p-6 flex items-center justify-between">
+          <div className="p-4 sm:p-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[10px] font-bold text-foreground/80 uppercase tracking-tight">Session</div>
               <p className="text-[9px] text-foreground/30 font-bold uppercase mt-1 tracking-widest">Terminate your current session and sign out</p>

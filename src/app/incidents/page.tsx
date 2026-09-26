@@ -24,6 +24,7 @@ interface Incident {
   severity: "LOW" | "MEDIUM" | "CRITICAL";
   startedAt: string;
   resolvedAt: string | null;
+  automatic: boolean;
   createdAt: string;
   updatedAt: string;
   services: Array<{ service: { name: string; slug: string } }>;
@@ -60,14 +61,17 @@ export default function IncidentsPage() {
       (i) => i.status === "RESOLVED" && i.resolvedAt,
     );
 
+    // MTTR is measured on incidents the monitoring engine opened and resolved, so hand-entered or
+    // imported records with arbitrary timestamps cannot skew it.
+    const measured = resolved.filter((i) => i.automatic);
     let mttrMs = 0;
-    if (resolved.length > 0) {
-      const totalMs = resolved.reduce((sum, incident) => {
+    if (measured.length > 0) {
+      const totalMs = measured.reduce((sum, incident) => {
         const start = new Date(incident.startedAt).getTime();
         const end = new Date(incident.resolvedAt!).getTime();
         return sum + (end - start);
       }, 0);
-      mttrMs = Math.round(totalMs / resolved.length);
+      mttrMs = Math.round(totalMs / measured.length);
     }
 
     const formatDuration = (ms: number) => {
@@ -87,35 +91,21 @@ export default function IncidentsPage() {
     const total =
       severityCounts.CRITICAL + severityCounts.MEDIUM + severityCounts.LOW;
 
-    // Count auto-detected incidents
-    const autoDetected = incidents.filter(
-      (i) =>
-        i.events.length > 0 &&
-        i.events[i.events.length - 1]?.message.includes("Outage detected"),
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const resolvedLast7Days = resolved.filter(
+      (i) => new Date(i.resolvedAt!).getTime() >= sevenDaysAgo,
     ).length;
 
     return {
-      mttr: resolved.length > 0 ? formatDuration(mttrMs) : "No data",
-      density:
-        resolved.length > 0
-          ? (resolved.length / 7).toFixed(1) + "/day"
-          : "No data",
+      mttr: measured.length > 0 ? formatDuration(mttrMs) : "No data",
+      density: (resolvedLast7Days / 7).toFixed(1) + "/day",
       severityCounts,
       total,
-      autoDetected,
-      autoResolved: resolved.filter((i) =>
-        i.events.some((e) => e.message.includes("Service recovered")),
-      ).length,
     };
   };
 
   const metrics = calculateMetrics();
   const activeIncidents = incidents.filter((i) => i.status !== "RESOLVED");
-  const autoDetectedIncidents = incidents.filter(
-    (i) =>
-      i.events.length > 0 &&
-      i.events[i.events.length - 1]?.message.includes("Outage detected"),
-  );
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -149,7 +139,7 @@ export default function IncidentsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto">
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <ShieldAlert className="w-3.5 h-3.5 text-error" />
@@ -188,7 +178,7 @@ export default function IncidentsPage() {
             <div className="space-y-6">
               <div>
                 <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">
-                  MTTR_AVG
+                  MTTR_AVG (AUTO)
                 </div>
                 <div className="text-xl font-black text-foreground/80 tracking-tighter tabular-nums">
                   {metrics.mttr}
@@ -196,7 +186,7 @@ export default function IncidentsPage() {
               </div>
               <div>
                 <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">
-                  FREQUENCY
+                  RESOLVED_LAST_7D
                 </div>
                 <div className="text-xl font-black text-foreground/80 tracking-tighter tabular-nums">
                   {metrics.density}
@@ -259,7 +249,7 @@ export default function IncidentsPage() {
               </div>
             ) : (
               incidents.map((incident) => (
-                <div key={incident.id} className="relative pl-12">
+                <div key={incident.id} className="relative pl-9 sm:pl-12">
                   {/* Timeline dot */}
                   <div
                     className={cn(
@@ -276,10 +266,10 @@ export default function IncidentsPage() {
 
                   <Link
                     href={`/incidents/${incident.id}`}
-                    className="surface border border-border rounded-sm p-6 group hover:border-accent/30 transition-all block"
+                    className="surface border border-border rounded-sm p-4 sm:p-6 group hover:border-accent/30 transition-all block"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <span className="text-[9px] font-black uppercase tracking-widest text-foreground/20">
                           {incident.id.slice(0, 8)}
                         </span>
@@ -296,21 +286,18 @@ export default function IncidentsPage() {
                           {incident.severity}
                         </div>
                         {/* Auto-detected badge */}
-                        {incident.events.length > 0 &&
-                          incident.events[
-                            incident.events.length - 1
-                          ]?.message.includes("Outage detected") && (
-                            <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded-sm bg-accent/10 text-accent border border-accent/20">
-                              Auto
-                            </span>
-                          )}
+                        {incident.automatic && (
+                          <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded-sm bg-accent/10 text-accent border border-accent/20">
+                            Auto
+                          </span>
+                        )}
                         <span className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest">
                           {formatTime(incident.startedAt)}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-start justify-between gap-8">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-8">
                       <div className="flex-1">
                         <h3 className="text-sm font-black text-foreground/80 uppercase tracking-tight mb-3 group-hover:text-accent transition-colors">
                           {incident.title}
@@ -339,7 +326,7 @@ export default function IncidentsPage() {
                         )}
                       </div>
 
-                      <div className="text-right min-w-24">
+                      <div className="sm:text-right sm:min-w-24">
                         <div className="text-[8px] font-black uppercase tracking-widest text-foreground/10 mb-1">
                           Duration
                         </div>

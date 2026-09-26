@@ -45,6 +45,7 @@ export function Toast({ id, type, title, message, onClose }: ToastProps) {
 
   return (
     <div
+      role={type === "error" ? "alert" : "status"}
       className={`animate-in fade-in slide-in-from-top-2 duration-300 p-4 border rounded-sm ${bgColor} flex items-start gap-3`}
     >
       <div className="flex-1 pt-0.5">
@@ -57,6 +58,7 @@ export function Toast({ id, type, title, message, onClose }: ToastProps) {
       </div>
       <button
         onClick={() => onClose(id)}
+        aria-label="Dismiss notification"
         className={`flex-shrink-0 ${textColor}/40 hover:${textColor}/70 transition-colors p-1`}
       >
         <X className="w-3.5 h-3.5" />

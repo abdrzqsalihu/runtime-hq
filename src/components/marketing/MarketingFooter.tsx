@@ -7,7 +7,7 @@ const linkClass =
 export function MarketingFooter({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <footer>
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex max-w-[1680px] flex-col gap-8 px-5 py-10 sm:px-8 lg:px-14 md:flex-row md:items-center md:justify-between">
         <BrandMark />
         <nav aria-label="Footer" className="flex flex-wrap gap-x-8 gap-y-3">
           <a href="#features" className={linkClass}>
@@ -31,9 +31,22 @@ export function MarketingFooter({ isAuthenticated }: { isAuthenticated: boolean 
             </>
           )}
         </nav>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">
-          © {new Date().getFullYear()} Runtime HQ
-        </p>
+        <div className="flex flex-col gap-1.5 md:items-end">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">
+            Built by{" "}
+            <a
+              href="https://abdrzqsalihu.space/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent transition-colors hover:text-accent/70"
+            >
+              Abdulrazaq Salihu
+            </a>
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">
+            © {new Date().getFullYear()} Runtime HQ
+          </p>
+        </div>
       </div>
     </footer>
   );

@@ -4,7 +4,7 @@ import { Activity, Server, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KPI {
-  totalUptimePercent: number | null;
+  uptime24hPercent: number | null;
   activeServices: number;
   avgResponseTimeMs: number | null;
   activeIncidents: number;
@@ -18,19 +18,19 @@ interface KPICardsProps {
 export function KPICards({ kpi, loading }: KPICardsProps) {
   const metrics = [
     {
-      label: "SYSTEM_UPTIME",
-      value: kpi ? (kpi.totalUptimePercent !== null ? `${kpi.totalUptimePercent.toFixed(2)}%` : "—") : "—",
+      label: "UPTIME_24H",
+      value: kpi ? (kpi.uptime24hPercent !== null ? `${kpi.uptime24hPercent.toFixed(2)}%` : "—") : "—",
       status: kpi
-        ? kpi.totalUptimePercent !== null
-          ? kpi.totalUptimePercent >= 99
+        ? kpi.uptime24hPercent !== null
+          ? kpi.uptime24hPercent >= 99
             ? "success"
-            : kpi.totalUptimePercent >= 95
+            : kpi.uptime24hPercent >= 95
               ? "warning"
               : "error"
           : "warning"
         : "warning",
       icon: Activity,
-      description: "Global Availability",
+      description: "Last 24 Hours",
     },
     {
       label: "NODES_ACTIVE",
@@ -52,7 +52,7 @@ export function KPICards({ kpi, loading }: KPICardsProps) {
           : "warning"
         : "warning",
       icon: Clock,
-      description: "Average Response Time",
+      description: "Avg Response · 24H",
     },
     {
       label: "ACTIVE_INCIDENTS",
@@ -64,14 +64,17 @@ export function KPICards({ kpi, loading }: KPICardsProps) {
   ];
 
   return (
-    <div className="flex border-b border-border bg-foreground/[0.01]">
+    <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-border bg-foreground/[0.01]">
       {metrics.map((metric, i) => (
         <div
           key={i}
           className={cn(
-            "flex-1 p-5 border-r border-border transition-all cursor-pointer relative overflow-hidden active:bg-foreground/[0.04] group",
+            "p-4 sm:p-5 border-r border-b border-border transition-all cursor-pointer relative overflow-hidden active:bg-foreground/[0.04] group",
             "hover:bg-foreground/[0.02]",
-            i === metrics.length - 1 && "border-r-0",
+            i % 2 === 1 && "border-r-0",
+            i >= 2 && "border-b-0",
+            "lg:border-b-0 lg:border-r",
+            i === metrics.length - 1 && "lg:border-r-0",
             loading && "opacity-60"
           )}
         >
