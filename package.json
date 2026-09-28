@@ -29,6 +29,7 @@
   "dependencies": {
     "@better-auth/infra": "^0.2.6",
     "@prisma/client": "^6.19.2",
+    "@vercel/analytics": "^2.0.1",
     "better-auth": "^1.6.10",
     "clsx": "^2.1.1",
     "lucide-react": "^1.11.0",
