@@ -11,7 +11,7 @@ import { FinalCta } from "@/components/marketing/FinalCta";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
 export const metadata: Metadata = {
-  title: { absolute: "Runtime HQ — Know what your services are doing" },
+  title: { absolute: "Runtime HQ - Know what your services are doing" },
   description:
     "Runtime HQ runs real HTTP checks against your services, records latency and status history, and opens an incident automatically when a service starts failing.",
 };
