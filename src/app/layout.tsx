@@ -10,7 +10,15 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const siteTitle = "Runtime HQ — HTTP service monitoring with automatic incidents";
+const siteDescription =
+  "Runtime HQ runs real HTTP checks against your services, records latency and status history, and opens an incident automatically when a service starts failing.";
+const shareImage = "/social/runtime-hq-share.png";
+
 export const metadata: Metadata = {
+  // Resolves relative OG/Twitter image URLs (and any future canonical URLs) to an absolute
+  // production URL, using the same base-URL env var the rest of the app already reads.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://runtime-hq.vercel.app"),
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
@@ -18,11 +26,22 @@ export const metadata: Metadata = {
     ],
   },
   title: {
-    default: "Runtime HQ — HTTP service monitoring with automatic incidents",
+    default: siteTitle,
     template: "%s | Runtime HQ",
   },
-  description:
-    "Runtime HQ runs real HTTP checks against your services, records latency and status history, and opens an incident automatically when a service starts failing.",
+  description: siteDescription,
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    siteName: "Runtime HQ",
+    images: [{ url: shareImage, width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: [shareImage],
+  },
 };
 
 // Runs before first paint so the saved theme is applied without a dark-to-light flash
