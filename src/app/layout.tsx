@@ -4,13 +4,15 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/ThemeProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import { LayoutShell } from "@/components/layout/LayoutShell";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
 
-const siteTitle = "Runtime HQ — HTTP service monitoring with automatic incidents";
+const siteTitle =
+  "Runtime HQ - HTTP service monitoring with automatic incidents";
 const siteDescription =
   "Runtime HQ runs real HTTP checks against your services, records latency and status history, and opens an incident automatically when a service starts failing.";
 const shareImage = "/social/runtime-hq-share.png";
@@ -53,16 +55,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full dark`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} h-full dark`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="flex h-full bg-background text-foreground transition-colors duration-200 selection:bg-accent/30">
+        <Analytics />
         <ThemeProvider>
           <ToastProvider>
-            <LayoutShell>
-              {children}
-            </LayoutShell>
+            <LayoutShell>{children}</LayoutShell>
           </ToastProvider>
         </ThemeProvider>
       </body>
