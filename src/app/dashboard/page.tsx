@@ -6,6 +6,7 @@ import { ServiceTable } from "@/components/dashboard/ServiceTable";
 import { Terminal, Plus, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AddMonitorModal } from "@/components/dashboard/AddMonitorModal";
+import { AlertsPrompt } from "@/components/dashboard/AlertsPrompt";
 
 interface KPI {
   uptime24hPercent: number | null;
@@ -166,6 +167,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <AlertsPrompt />
 
       {/* Error State */}
       {error && (

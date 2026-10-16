@@ -4,7 +4,14 @@ import { WRAP } from "./layout";
 
 const INDEX = [
   ["MONITORING", "HTTP checks · latency · status"],
-  ["INCIDENTS", "Automatic detection · resolution · duration · manual declaration"],
+  [
+    "ALERTS",
+    "Telegram (via Runtime Beacon) · email · down and recovery notices · you choose which",
+  ],
+  [
+    "INCIDENTS",
+    "Automatic detection · resolution · duration · manual declaration",
+  ],
   ["HISTORY", "Every check stored · timelines · uptime from recorded results"],
   ["CONTROL", "Manual checks · service registry · per-user ownership"],
 ];
@@ -14,7 +21,7 @@ export function Capabilities() {
     <section
       id="features"
       aria-labelledby="capabilities-heading"
-      className="scroll-mt-12 border-b border-border bg-surface"
+      className="scroll-mt-12 border-b border-border"
     >
       <div className={cn(WRAP, "py-20 lg:py-32")}>
         <RuleLabel left="SYSTEM_INDEX" />

@@ -123,10 +123,10 @@ export default function SettingsPage() {
         </div>
 
         {/* Notifications Section */}
-        <div className="surface border border-border rounded-sm overflow-hidden">
+        <div id="notifications" className="surface scroll-mt-20 border border-border rounded-sm overflow-hidden">
           <div className="px-5 py-3 border-b border-border bg-foreground/[0.01] flex items-center gap-3">
             <Bell className="w-3.5 h-3.5 text-accent" />
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Notifications</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Alerts &amp; Notifications</h3>
           </div>
           <NotificationSettings />
         </div>

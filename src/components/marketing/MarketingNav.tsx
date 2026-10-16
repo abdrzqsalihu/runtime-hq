@@ -9,6 +9,7 @@ import { CtaLink } from "./CtaLink";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
+  { href: "#alerts", label: "Alerts" },
   { href: "#how-it-works", label: "How it works" },
 ];
 

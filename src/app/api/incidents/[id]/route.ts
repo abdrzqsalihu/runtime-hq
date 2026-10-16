@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { IncidentStatus } from "@prisma/client";
 import { setIncidentStatus } from "@/lib/incident-manager";
+import { getIncidentNotifications } from "@/lib/notifications/history";
 
 const updateIncidentSchema = z.object({ status: z.nativeEnum(IncidentStatus) });
 
@@ -30,7 +31,8 @@ export async function GET(
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
 
-  return NextResponse.json({ incident });
+  const notifications = await getIncidentNotifications(session.user.id, id);
+  return NextResponse.json({ incident, notifications });
 }
 
 export async function PATCH(

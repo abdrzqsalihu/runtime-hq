@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { sendBrevoEmail } from "./brevo";
-import { appUrl, brevoConfig, isEmailConfigured, isTelegramConfigured } from "./config";
+import { appUrl, brevoConfig, failureThreshold, isEmailConfigured, isTelegramConfigured } from "./config";
 import { sendThroughChannel } from "./outbox";
 import { getBotUsername } from "./telegram";
 import { renderVerificationEmail } from "./templates";
@@ -53,6 +53,7 @@ export async function getNotificationOverview(userId: string) {
 
   return {
     providers: { email: isEmailConfigured(), telegram: isTelegramConfigured() },
+    failureThreshold: failureThreshold(),
     email: {
       address: settings.emailAddress,
       verified: !!settings.emailVerifiedAt && !!settings.emailAddress,

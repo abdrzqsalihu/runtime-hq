@@ -3,7 +3,7 @@ import { HeroInstrument } from "./HeroInstrument";
 import { RuleLabel } from "./RuleLabel";
 import { WRAP } from "./layout";
 
-const FACTS = ["HTTP GET", "3s timeout", "Every 5 minutes", "History per check"];
+const FACTS = ["HTTP GET", "3s timeout", "Every 5 minutes", "Telegram & email alerts"];
 
 export function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
@@ -24,7 +24,7 @@ export function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
           <div className="lg:col-span-4 lg:pb-3">
             <p className="max-w-md text-base leading-relaxed text-foreground/65 lg:text-lg">
               Runtime HQ sends real HTTP requests to your services, records every result, and opens
-              an incident when a healthy service starts failing.
+              an incident when a healthy service starts failing. Then it tells you, on Telegram or by email, and again when it recovers.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {isAuthenticated ? (

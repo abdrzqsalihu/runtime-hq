@@ -73,7 +73,7 @@ export function FinalCta({ isAuthenticated }: { isAuthenticated: boolean }) {
             className="h-12 sm:h-16"
           />
           <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-foreground/35">
-            Sample · the first result appears as soon as the first check runs
+            Sample · the first result appears as soon as the first check runs. Then turn on Telegram or email alerts in Settings.
           </p>
         </div>
       </div>
