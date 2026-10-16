@@ -2,6 +2,7 @@
 
 import {
   User,
+  Bell,
   Shield,
   Cpu,
   Terminal,
@@ -16,6 +17,7 @@ import { useSession, signOut } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/lib/use-toast";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
 
 export default function SettingsPage() {
   const toast = useToast();
@@ -118,6 +120,15 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Notifications Section */}
+        <div className="surface border border-border rounded-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-border bg-foreground/[0.01] flex items-center gap-3">
+            <Bell className="w-3.5 h-3.5 text-accent" />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Notifications</h3>
+          </div>
+          <NotificationSettings />
         </div>
 
         {/* Appearance Section */}

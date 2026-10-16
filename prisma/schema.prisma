@@ -79,6 +79,8 @@ model Incident {
   resolvedAt DateTime?
   // true when the monitoring engine opened this incident (only these are auto-resolved on recovery)
   automatic  Boolean         @default(false)
+  // Incremented each time a resolved incident is reopened; part of the notification idempotency key
+  notifyCycle Int            @default(1)
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
@@ -129,6 +131,9 @@ model User {
   accounts      Account[]
   services      Service[]
   incidents     Incident[]
+  notificationSettings NotificationSettings?
+  notificationTokens   NotificationToken[]
+  notificationEvents   NotificationEvent[]
 
   @@unique([email])
   @@map("user")
@@ -179,3 +184,112 @@ model Verification {
   @@map("verification")
 }
 
+
+enum NotificationChannel {
+  EMAIL
+  TELEGRAM
+}
+
+enum NotificationEventType {
+  INCIDENT_OPENED
+  INCIDENT_RESOLVED
+  TEST
+}
+
+enum DeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  DELIVERED
+  FAILED
+  SKIPPED
+}
+
+enum TelegramStatus {
+  ACTIVE
+  BLOCKED
+  INVALID
+}
+
+enum NotificationTokenKind {
+  TELEGRAM_LINK
+  EMAIL_VERIFY
+}
+
+// One row per user. A channel is "configured" when the email is verified / Telegram is linked.
+model NotificationSettings {
+  userId              String         @id
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailAddress        String?
+  emailVerifiedAt     DateTime?
+  emailOnIncident     Boolean        @default(true)
+  emailOnRecovery     Boolean        @default(true)
+
+  telegramChatId      String?        @unique
+  telegramDisplayName String?
+  telegramLinkedAt    DateTime?
+  telegramStatus      TelegramStatus @default(ACTIVE)
+  telegramOnIncident  Boolean        @default(true)
+  telegramOnRecovery  Boolean        @default(true)
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+// Short-lived single-use tokens (only the SHA-256 hash is stored)
+model NotificationToken {
+  id        String                @id @default(cuid())
+  userId    String
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      NotificationTokenKind
+  tokenHash String                @unique
+  payload   String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime              @default(now())
+
+  @@index([userId, kind, createdAt])
+}
+
+// Outbox: one row per notification-worthy occurrence. idempotencyKey makes enqueueing repeat-safe.
+model NotificationEvent {
+  id             String                @id
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  incidentId     String?
+  type           NotificationEventType
+  idempotencyKey String                @unique
+  payload        Json
+  createdAt      DateTime              @default(now())
+
+  deliveries     NotificationDelivery[]
+
+  @@index([userId, createdAt])
+  @@index([incidentId])
+}
+
+// One row per (event, channel): the unit that is claimed, sent, retried and tracked.
+model NotificationDelivery {
+  id                String              @id @default(cuid())
+  eventId           String
+  event             NotificationEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId            String
+  channel           NotificationChannel
+  status            DeliveryStatus      @default(PENDING)
+  attempts          Int                 @default(0)
+  nextAttemptAt     DateTime            @default(now())
+  lockedUntil       DateTime?
+  lastError         String?
+  providerMessageId String?
+  providerStatus    String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @default(now()) @updatedAt
+
+  @@unique([eventId, channel])
+  @@index([status, nextAttemptAt])
+  @@index([userId, createdAt])
+  @@index([providerMessageId])
+}

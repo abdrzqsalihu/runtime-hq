@@ -128,7 +128,7 @@ Checks, services and incidents are stored in PostgreSQL. Everything runs in the 
 - **Duplicates.** Incident changes for a service are serialised with a row lock, so concurrent checks of the same service cannot open two automatic incidents or resolve one twice.
 - **Deleting a service** keeps incident history. An open incident that only affected that service is closed with a timeline event. An open incident affecting other services stays open, and the removal is recorded.
 
-Incidents are opened on the first failing check. There is no consecutive-failure threshold or retry, so a single failed check opens an incident.
+An automatic incident opens after `INCIDENT_FAILURE_THRESHOLD` consecutive failed checks (default 2). Opening and resolving an automatic incident queues Telegram and email notifications; see [docs/notifications.md](docs/notifications.md).
 
 ## Security
 
@@ -160,6 +160,10 @@ Create `.env` in the project root. Do not commit it (it is git-ignored).
 | `CRON_SECRET` | Yes, to run scheduled checks | Bearer token for `/api/cron/check-services`. Without it the endpoint returns 500. |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Optional | Enables Google sign-in. |
 | `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET` | Optional | Enables GitHub sign-in. |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` | Optional | Enable Telegram alerts (bot token from @BotFather; webhook secret you generate). |
+| `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME` | Optional | Enable email alerts through Brevo. The sender must be verified in Brevo. |
+| `BREVO_WEBHOOK_SECRET` | Optional | Protects `/api/brevo/webhook` (delivery/bounce events). Endpoint is disabled without it. |
+| `INCIDENT_FAILURE_THRESHOLD` | Optional | Consecutive failed checks before an incident opens (1–10, default 2). |
 | `BETTER_AUTH_API_KEY` | Optional | Used by the `@better-auth/infra` dashboard plugin that the app enables. |
 
 Email and password sign-in works without the OAuth variables. If a provider's variables are missing, its sign-in button will not work.
@@ -234,7 +238,7 @@ The manual "Check now" action uses the same 45-second per-service guard. That gu
 
 ## Testing and verification
 
-There is no automated test suite, and no CI configuration in the repository. What exists:
+There is no CI configuration. `pnpm test` runs the Node test runner suite in `src/test/` (incident → notification lifecycle, outbox delivery/retries, Telegram linking, email confirmation, webhook authentication). It runs against the database in `DATABASE_URL` using disposable users it deletes afterwards, with Telegram and Brevo mocked, so prefer a non-production database. Also available:
 
 - `pnpm lint` (ESLint). The codebase currently reports some pre-existing warnings and errors, mostly React hook rules.
 - `pnpm build` runs a type-checked production build.
@@ -244,7 +248,7 @@ There is no automated test suite, and no CI configuration in the repository. Wha
 
 Runtime HQ does not currently provide:
 
-- External notifications or alerting (email, Slack, webhooks). Incidents are visible in the app only; the bell icon in the top bar links to the incident list.
+- Notification channels other than Telegram and email (Slack, webhooks, SMS), reminders while an incident stays open, or notifications for manually declared incidents.
 - Multi-region monitoring. Every check runs from wherever the app is deployed. The `region` field on a service is a stored label, not a monitoring location, and is not exposed in the creation flow.
 - Teams, workspaces or shared access. Data is per user.
 - Billing or plans (there is a fixed limit of 25 services per user).
@@ -253,7 +257,7 @@ Runtime HQ does not currently provide:
 - Configurable check intervals, timeouts, HTTP methods or expected status codes. Checks are `GET`, 3 seconds, with the classification above.
 - Password reset or email verification.
 - Account deletion, or profile editing.
-- A failure threshold before opening an incident, or data retention.
+- Data retention, or per-service failure thresholds (the threshold is one global setting).
 
 ## License
 

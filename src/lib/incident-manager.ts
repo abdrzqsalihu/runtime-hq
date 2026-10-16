@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Prisma, ServiceStatus, IncidentStatus, IncidentSeverity } from "@prisma/client";
+import { failureThreshold } from "@/lib/notifications/config";
+import { enqueueIncidentEvent } from "@/lib/notifications/outbox";
 
 type Tx = Prisma.TransactionClient;
 
@@ -57,49 +59,51 @@ function formatDuration(startedAt: Date, now: Date): string {
 }
 
 /**
- * Handle state transition detection and incident management.
- * Called after a health check updates the service status.
+ * Open or resolve the automatic incident for a service after a check has been recorded.
+ *
+ * - Failing: an incident opens once the last `failureThreshold()` checks (including this one) have all
+ *   failed and none is already open. Its start time is the first check of that failing run.
+ * - Healthy: an open automatic incident is resolved.
+ *
+ * The decision is made from recorded check history under a per-service row lock, so concurrent or
+ * repeated checks cannot open two incidents or resolve one twice. The notification for each
+ * transition is written to the outbox in the same transaction (see notifications/outbox.ts);
+ * delivery happens later and can never block or fail a check.
  */
 export async function handleServiceStatusTransition(
   serviceId: string,
   serviceName: string,
   userId: string,
-  previousStatus: ServiceStatus | null,
   newStatus: ServiceStatus
 ): Promise<void> {
-  // No previous status means this is the first check
-  if (!previousStatus) {
-    return;
-  }
-
-  const isNowFailing = newStatus !== ServiceStatus.OPERATIONAL;
-  const wasHealthy = previousStatus === ServiceStatus.OPERATIONAL;
-  const isNowHealthy = newStatus === ServiceStatus.OPERATIONAL;
-  const wasUnhealthy = previousStatus !== ServiceStatus.OPERATIONAL;
-
-  if (!(isNowFailing && wasHealthy) && !(isNowHealthy && wasUnhealthy)) {
-    return;
-  }
+  const isFailing = newStatus !== ServiceStatus.OPERATIONAL;
+  const threshold = failureThreshold();
 
   await prisma.$transaction(async (tx) => {
     if (!(await lockService(tx, serviceId))) return;
 
     const existing = await findActiveAutomaticIncident(tx, serviceId);
 
-    if (isNowFailing && wasHealthy) {
-      // Transition to failure: open an incident unless one is already open
+    if (isFailing) {
       if (existing) return;
 
+      const recent = await tx.serviceCheck.findMany({
+        where: { serviceId },
+        orderBy: { checkedAt: "desc" },
+        take: threshold,
+        select: { status: true, checkedAt: true },
+      });
+      if (recent.length < threshold || recent.some((check) => check.status === ServiceStatus.OPERATIONAL)) return;
+
+      const service = await tx.service.findUnique({ where: { id: serviceId }, select: { endpointUrl: true } });
       const severity = statusToSeverity(newStatus);
-      await tx.incident.create({
+      const startedAt = recent[recent.length - 1].checkedAt;
+      const incident = await tx.incident.create({
         data: {
-          title:
-            newStatus === ServiceStatus.OUTAGE
-              ? `${serviceName} Outage`
-              : `${serviceName} Degraded`,
+          title: newStatus === ServiceStatus.OUTAGE ? `${serviceName} Outage` : `${serviceName} Degraded`,
           severity,
           status: IncidentStatus.INVESTIGATING,
-          startedAt: new Date(),
+          startedAt,
           automatic: true,
           userId,
           services: { create: [{ serviceId }] },
@@ -113,10 +117,17 @@ export async function handleServiceStatusTransition(
           },
         },
       });
+      await enqueueIncidentEvent(tx, {
+        type: "INCIDENT_OPENED",
+        userId,
+        incident,
+        services: [{ name: serviceName, url: service?.endpointUrl ?? "" }],
+        occurredAt: new Date(),
+      });
       return;
     }
 
-    // Transition back to healthy: resolve the automatic incident
+    // Healthy again: resolve the automatic incident
     if (!existing) return;
     const now = new Date();
     const resolved = await tx.incident.updateMany({
@@ -132,6 +143,14 @@ export async function handleServiceStatusTransition(
         severity: IncidentSeverity.LOW,
       },
     });
+    const service = await tx.service.findUnique({ where: { id: serviceId }, select: { endpointUrl: true } });
+    await enqueueIncidentEvent(tx, {
+      type: "INCIDENT_RESOLVED",
+      userId,
+      incident: { ...existing, resolvedAt: now },
+      services: [{ name: serviceName, url: service?.endpointUrl ?? "" }],
+      occurredAt: now,
+    });
   }, TX_OPTIONS);
 }
 
@@ -140,6 +159,8 @@ export async function handleServiceStatusTransition(
  * - RESOLVED sets `resolvedAt` and records a timeline event
  * - leaving RESOLVED clears `resolvedAt` and records a timeline event
  * - other transitions record the change
+ * For incidents the monitoring engine opened, resolving queues a recovery notification (if the
+ * user was alerted) and reopening starts a new notification cycle with a fresh alert.
  * Returns null when the incident doesn't exist.
  */
 export async function setIncidentStatus(
@@ -147,18 +168,26 @@ export async function setIncidentStatus(
   newStatus: IncidentStatus
 ): Promise<IncidentWithRelations | null> {
   return prisma.$transaction(async (tx) => {
-    const current = await tx.incident.findUnique({ where: { id: incidentId } });
-    if (!current) return null;
+    // Serialise concurrent status changes of the same incident
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "Incident" WHERE "id" = ${incidentId} FOR UPDATE`;
+    if (locked.length === 0) return null;
+    const current = await tx.incident.findUniqueOrThrow({
+      where: { id: incidentId },
+      include: { services: { include: { service: { select: { name: true, endpointUrl: true } } } } },
+    });
 
     if (current.status !== newStatus) {
       const resolving = newStatus === IncidentStatus.RESOLVED;
       const reopening = current.status === IncidentStatus.RESOLVED;
+      const now = new Date();
+      const notifyCycle = reopening && current.automatic ? current.notifyCycle + 1 : current.notifyCycle;
 
-      await tx.incident.update({
+      const updated = await tx.incident.update({
         where: { id: incidentId },
         data: {
           status: newStatus,
-          resolvedAt: resolving ? new Date() : reopening ? null : current.resolvedAt,
+          resolvedAt: resolving ? now : reopening ? null : current.resolvedAt,
+          notifyCycle,
         },
       });
 
@@ -173,6 +202,16 @@ export async function setIncidentStatus(
           severity: current.severity,
         },
       });
+
+      if (current.automatic && (resolving || reopening)) {
+        await enqueueIncidentEvent(tx, {
+          type: resolving ? "INCIDENT_RESOLVED" : "INCIDENT_OPENED",
+          userId: current.userId,
+          incident: updated,
+          services: current.services.map((link) => ({ name: link.service.name, url: link.service.endpointUrl })),
+          occurredAt: now,
+        });
+      }
     }
 
     return tx.incident.findUniqueOrThrow({ where: { id: incidentId }, include: withRelations });
@@ -183,7 +222,8 @@ export async function setIncidentStatus(
  * Delete a service without leaving an active incident that has no service.
  * - An open incident that only affected this service is closed, with a timeline event.
  * - An open incident that affects other services stays open and records the removal.
- * Incident rows and events are kept either way.
+ * Incident rows and events are kept either way. No notification is sent: deleting a service
+ * is an administrative action, not a recovery.
  */
 export async function deleteServiceAndCloseIncidents(serviceId: string): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
