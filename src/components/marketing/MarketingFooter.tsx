@@ -13,6 +13,9 @@ export function MarketingFooter({ isAuthenticated }: { isAuthenticated: boolean 
           <a href="#features" className={linkClass}>
             Features
           </a>
+          <a href="#alerts" className={linkClass}>
+            Alerts
+          </a>
           <a href="#how-it-works" className={linkClass}>
             How it works
           </a>

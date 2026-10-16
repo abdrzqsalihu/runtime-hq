@@ -14,7 +14,7 @@ const inter = Inter({
 const siteTitle =
   "Runtime HQ - HTTP service monitoring with automatic incidents";
 const siteDescription =
-  "Runtime HQ runs real HTTP checks against your services, records latency and status history, and opens an incident automatically when a service starts failing.";
+  "Runtime HQ runs real HTTP checks against your services, records latency and status history, opens an incident automatically when a service starts failing, and alerts you by Telegram or email when it goes down and when it recovers.";
 const shareImage = "/social/runtime-hq-share.png";
 
 export const metadata: Metadata = {

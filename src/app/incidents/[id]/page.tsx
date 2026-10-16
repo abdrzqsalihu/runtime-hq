@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/use-toast";
+import { IncidentNotifications, isInFlight, type IncidentDelivery } from "@/components/incidents/IncidentNotifications";
 
 interface IncidentEvent {
   id: string;
@@ -64,6 +65,7 @@ export default function IncidentDetailPage() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [newEventMessage, setNewEventMessage] = useState("");
   const [addingEvent, setAddingEvent] = useState(false);
+  const [deliveries, setDeliveries] = useState<IncidentDelivery[]>([]);
 
   const fetchIncident = async () => {
     try {
@@ -77,6 +79,7 @@ export default function IncidentDetailPage() {
       }
       const data = await response.json();
       setIncident(data.incident);
+      setDeliveries(data.notifications ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -89,6 +92,23 @@ export default function IncidentDetailPage() {
       fetchIncident();
     }
   }, [incidentId]);
+
+  // Alerts are delivered in the background: keep the status current while any is still queued or sending.
+  const hasInFlight = deliveries.some(isInFlight);
+  const refreshDeliveries = async () => {
+    try {
+      const response = await fetch(`/api/incidents/${incidentId}`);
+      if (response.ok) setDeliveries((await response.json()).notifications ?? []);
+    } catch {
+      // keep the last known state
+    }
+  };
+  useEffect(() => {
+    if (!hasInFlight) return;
+    const timer = window.setInterval(refreshDeliveries, 5000);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasInFlight, incidentId]);
 
   const handleStatusUpdate = async (newStatus: typeof STATUS_PROGRESSION[number]) => {
     if (!incident) return;
@@ -111,6 +131,7 @@ export default function IncidentDetailPage() {
         const data = await response.json();
         setIncident(data.incident);
         toast.success("INCIDENT_RESOLVED", "The incident has been marked as resolved.");
+        void refreshDeliveries();
       } else {
         const response = await fetch(`/api/incidents/${incidentId}`, {
           method: "PATCH",
@@ -127,6 +148,7 @@ export default function IncidentDetailPage() {
         const data = await response.json();
         setIncident(data.incident);
         toast.success("STATUS_UPDATED", `Incident is now ${newStatus.toLowerCase()}.`);
+        void refreshDeliveries();
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to update incident";
@@ -402,6 +424,8 @@ export default function IncidentDetailPage() {
                 <div>Duration: {formatDuration(incident.startedAt, incident.resolvedAt)}</div>
               </div>
             </div>
+
+            <IncidentNotifications automatic={isAutoDetected} deliveries={deliveries} />
 
             {/* Affected Services */}
             {incident.services.length > 0 && (

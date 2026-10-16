@@ -88,7 +88,7 @@ export const LIFECYCLE_STEPS: {
 }[] = [
   { label: "Service_Health", time: "09:00:03", state: "o", result: "HTTP 200 • 118ms", detail: "Checks pass and the service is operational." },
   { label: "Check_Fails", time: "09:15:04", state: "x", result: "HTTP timeout • 3001ms", detail: "The state becomes outage." },
-  { label: "Incident_Opens", time: "09:15:04", state: "x", result: "CRITICAL", detail: "Outage detected: Service unavailable. Opened automatically." },
+  { label: "Incident_Opens", time: "09:15:04", state: "x", result: "CRITICAL", detail: "Opened automatically after repeated failed checks. Your alert goes out." },
   { label: "Service_Recovers", time: "09:20:16", state: "o", result: "HTTP 200 • 118ms", detail: "A later check succeeds." },
-  { label: "Incident_Resolves", time: "09:20:16", state: "o", result: "Duration 5m 12s", detail: "Service recovered and incident automatically resolved." },
+  { label: "Incident_Resolves", time: "09:20:16", state: "o", result: "Duration 5m 12s", detail: "Resolved automatically, and a recovery notice follows." },
 ];

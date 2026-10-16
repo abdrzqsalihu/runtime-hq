@@ -20,6 +20,7 @@ interface HistoryItem {
 
 interface Overview {
   providers: { email: boolean; telegram: boolean };
+  failureThreshold: number;
   email: { address: string | null; verified: boolean; pendingAddress: string | null; pendingExpiresAt: string | null; onIncident: boolean; onRecovery: boolean };
   telegram: { connected: boolean; status: "ACTIVE" | "BLOCKED" | "INVALID" | null; displayName: string | null; linkedAt: string | null; onIncident: boolean; onRecovery: boolean };
   history: HistoryItem[];
@@ -94,7 +95,7 @@ const primaryButton = cn(buttonBase, "bg-accent text-black hover:bg-accent/80");
 const secondaryButton = cn(buttonBase, "border border-border text-foreground/70 hover:border-accent/40 hover:text-accent");
 const dangerButton = cn(buttonBase, "border border-error/20 text-error hover:bg-error/10");
 
-function ChannelCard({ icon: Icon, title, status, children }: { icon: typeof Mail; title: string; status: { label: string; tone: "ok" | "warn" | "off" }; children: React.ReactNode }) {
+function ChannelCard({ icon: Icon, title, description, status, children }: { icon: typeof Mail; title: string; description: string; status: { label: string; tone: "ok" | "warn" | "off" }; children: React.ReactNode }) {
   const tone = { ok: "text-success border-success/30", warn: "text-warning border-warning/30", off: "text-foreground/50 border-border" }[status.tone];
   return (
     <section aria-label={title} className="border-t border-border first:border-t-0">
@@ -105,6 +106,7 @@ function ChannelCard({ icon: Icon, title, status, children }: { icon: typeof Mai
         </div>
         <span role="status" className={cn("rounded-sm border px-2 py-0.5 text-[8px] font-black uppercase tracking-widest", tone)}>{status.label}</span>
       </div>
+      <p className="px-4 sm:px-6 pt-2 text-[10px] font-bold leading-relaxed text-foreground/50">{description}</p>
       <div className="space-y-4 px-4 sm:px-6 pb-6 pt-4">{children}</div>
     </section>
   );
@@ -281,10 +283,21 @@ export function NotificationSettings() {
 
   return (
     <div>
+      <div className="space-y-3 px-4 sm:px-6 py-5">
+        <p className="text-[10px] font-bold leading-relaxed text-foreground/60">
+          Runtime HQ messages you when a monitored service goes down, and again when it recovers, so you don&apos;t have to keep an eye on the dashboard. An alert is sent once an incident opens, after {data.failureThreshold} consecutive failed check{data.failureThreshold === 1 ? "" : "s"}. Set up one channel or both.
+        </p>
+        <p role="status" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] font-black uppercase tracking-widest text-foreground/40">
+          <span>Telegram: <span className={telegramConnected ? "text-success" : needsReconnect ? "text-warning" : "text-foreground/60"}>{telegramConnected ? "on" : needsReconnect ? "needs reconnect" : "not set up"}</span></span>
+          <span>Email: <span className={email.verified ? "text-success" : "text-foreground/60"}>{email.verified ? "on" : email.pendingAddress ? "awaiting confirmation" : "not set up"}</span></span>
+        </p>
+      </div>
+
       {/* Telegram */}
       <ChannelCard
         icon={Send}
         title="Telegram"
+        description="Runtime Beacon, Runtime HQ's Telegram bot, sends your alerts to a private chat with you. Instant on your phone, no inbox needed."
         status={needsReconnect ? { label: "Needs reconnect", tone: "warn" } : telegramConnected ? { label: "Connected", tone: "ok" } : { label: "Not connected", tone: "off" }}
       >
         {!providers.telegram && <Notice tone="info">Telegram alerts aren&apos;t available yet: the server hasn&apos;t been configured with a Telegram bot. Ask the administrator to finish the setup.</Notice>}
@@ -323,7 +336,7 @@ export function NotificationSettings() {
             {!link && (
               <ol className="list-decimal space-y-1 pl-5 text-[10px] font-bold leading-relaxed text-foreground/60">
                 <li>Press <span className="text-foreground/90">{needsReconnect ? "Reconnect" : "Connect"} Telegram</span> to get a personal link (valid 15 minutes).</li>
-                <li>Open it, then press <span className="text-foreground/90">Start</span> in the chat with the bot.</li>
+                <li>Open it, then press <span className="text-foreground/90">Start</span> in the chat with Runtime Beacon.</li>
                 <li>Come back here. This page updates by itself once Telegram confirms.</li>
               </ol>
             )}
@@ -355,6 +368,7 @@ export function NotificationSettings() {
       <ChannelCard
         icon={Mail}
         title="Email"
+        description="Down and recovery notices go to an address you confirm. We email a link to that address first, so nobody can receive alerts they didn't ask for."
         status={email.verified ? { label: "Active", tone: "ok" } : email.pendingAddress ? { label: "Awaiting confirmation", tone: "warn" } : { label: "Not set up", tone: "off" }}
       >
         {!providers.email && <Notice tone="info">Email alerts aren&apos;t available yet: the server hasn&apos;t been configured with an email sender. Ask the administrator to finish the setup.</Notice>}

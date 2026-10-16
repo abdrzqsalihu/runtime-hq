@@ -6,6 +6,7 @@ import { MotionStyles } from "@/components/marketing/MotionStyles";
 import { Hero } from "@/components/marketing/Hero";
 import { Evidence } from "@/components/marketing/Evidence";
 import { Lifecycle } from "@/components/marketing/Lifecycle";
+import { Alerts } from "@/components/marketing/Alerts";
 import { Capabilities } from "@/components/marketing/Capabilities";
 import { FinalCta } from "@/components/marketing/FinalCta";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
@@ -13,7 +14,7 @@ import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 export const metadata: Metadata = {
   title: { absolute: "Runtime HQ - Know what your services are doing" },
   description:
-    "Runtime HQ runs real HTTP checks against your services, records latency and status history, and opens an incident automatically when a service starts failing.",
+    "Runtime HQ runs real HTTP checks against your services, records latency and status history, opens an incident automatically when a service starts failing, and alerts you by Telegram or email when it goes down and when it recovers.",
 };
 
 async function getIsAuthenticated(): Promise<boolean> {
@@ -36,6 +37,7 @@ export default async function LandingPage() {
         <Hero isAuthenticated={isAuthenticated} />
         <Evidence />
         <Lifecycle />
+        <Alerts />
         <Capabilities />
         <FinalCta isAuthenticated={isAuthenticated} />
       </main>
