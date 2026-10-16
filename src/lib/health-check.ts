@@ -49,14 +49,13 @@ export interface CheckResult {
 export async function checkService(serviceId: string): Promise<CheckResult> {
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { id: true, name: true, endpointUrl: true, status: true, userId: true },
+    select: { id: true, name: true, endpointUrl: true, userId: true },
   });
 
   if (!service) {
     throw new Error("Service not found");
   }
 
-  const previousStatus = service.status;
   const check = await checkUrl(service.endpointUrl);
   const newStatus = mapStatus(check.httpStatus, check.ok);
   const errorRate = check.ok ? 0 : 100;
@@ -86,14 +85,13 @@ export async function checkService(serviceId: string): Promise<CheckResult> {
     }),
   ]);
 
-  // Handle automatic incident detection and resolution
-  await handleServiceStatusTransition(
-    service.id,
-    service.name,
-    service.userId,
-    previousStatus,
-    newStatus
-  );
+  // Incident detection runs from recorded check history. A failure here must not fail the check
+  // itself; the next check re-evaluates, because the decision is based on stored evidence.
+  try {
+    await handleServiceStatusTransition(service.id, service.name, service.userId, newStatus);
+  } catch (err) {
+    console.error("Incident evaluation failed for service", service.id, err instanceof Error ? err.message : "error");
+  }
 
   return {
     serviceId: service.id,

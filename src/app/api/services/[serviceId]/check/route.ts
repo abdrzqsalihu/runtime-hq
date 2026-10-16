@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { checkService } from "@/lib/health-check";
 import { prisma } from "@/lib/db";
+import { processNotificationOutbox } from "@/lib/notifications/outbox";
 import { canCheckNow, getRemainingCooldown, markCheckInProgress, recordCheckComplete } from "@/lib/rate-limit";
 
 export async function POST(
@@ -60,6 +61,15 @@ export async function POST(
     const result = await checkService(service.id);
 
     recordCheckComplete(service.id);
+
+    // Deliver any notification this check queued, after the response has been sent.
+    after(async () => {
+      try {
+        await processNotificationOutbox();
+      } catch (err) {
+        console.error("Notification processing failed", err instanceof Error ? err.name : "error");
+      }
+    });
 
     return NextResponse.json({ check: result }, { status: 200 });
   } catch (error) {

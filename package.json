@@ -11,7 +11,9 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "test": "node --env-file-if-exists=.env --import tsx --test \"src/**/*.test.ts\"",
+    "telegram:webhook": "node --env-file-if-exists=.env --import tsx scripts/telegram-webhook.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

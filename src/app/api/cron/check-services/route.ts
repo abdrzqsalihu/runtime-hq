@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkService } from "@/lib/health-check";
+import { processNotificationOutbox } from "@/lib/notifications/outbox";
 import { canCheckNow, markCheckInProgress, recordCheckComplete } from "@/lib/rate-limit";
+
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -43,5 +46,15 @@ export async function POST(req: Request) {
     })
   );
 
-  return NextResponse.json({ success: true, checked: results.length, results });
+  // Notification delivery is separate from monitoring: checks and incidents are already recorded above,
+  // and a provider outage here only delays notifications (they stay queued and are retried).
+  let notifications: Awaited<ReturnType<typeof processNotificationOutbox>> | { error: string } | undefined;
+  try {
+    notifications = await processNotificationOutbox();
+  } catch (err) {
+    console.error("Notification processing failed", err instanceof Error ? err.name : "error");
+    notifications = { error: "NOTIFICATION_PROCESSING_FAILED" };
+  }
+
+  return NextResponse.json({ success: true, checked: results.length, results, notifications });
 }
