@@ -122,3 +122,18 @@ export function renderVerificationEmail(confirmUrl: string): RenderedEmail {
     text: `Confirm your Runtime HQ notification email\n\nOpen this link while signed in to Runtime HQ (expires in 60 minutes):\n${confirmUrl}\n\nIf you didn't request this, ignore this email.`,
   };
 }
+
+export function renderPasswordResetEmail(resetUrl: string, expiresMinutes: number): RenderedEmail {
+  return {
+    subject: "Reset your Runtime HQ password",
+    html: layout({
+      banner: "Password reset",
+      bannerColor: COLORS.accent,
+      heading: "Reset your password",
+      rows: [["Why", "A password reset was requested for this account."], ["Expires", `In ${expiresMinutes} minutes`]],
+      cta: { label: "Reset password", href: resetUrl },
+      footer: "If you didn't request this, you can ignore this email — your password won't change.",
+    }),
+    text: `Reset your Runtime HQ password\n\nOpen this link to choose a new password (expires in ${expiresMinutes} minutes):\n${resetUrl}\n\nIf you didn't request this, ignore this email — your password won't change.`,
+  };
+}

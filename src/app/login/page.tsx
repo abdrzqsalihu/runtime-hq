@@ -144,12 +144,12 @@ export default function LoginPage() {
                 <label htmlFor="login-password" className="text-[9px] font-black uppercase tracking-widest text-foreground/50">
                   Password
                 </label>
-                <span
-                  className="text-[8px] font-black uppercase tracking-widest text-foreground/20 cursor-not-allowed"
-                  title="Password reset isn't available yet"
+                <Link
+                  href="/forgot-password"
+                  className="text-[8px] font-black uppercase tracking-widest text-accent hover:text-accent/80 transition-colors"
                 >
-                  Forgot Password? (Coming Soon)
-                </span>
+                  Forgot Password?
+                </Link>
               </div>
               <div className="relative group">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/20 group-focus-within:text-accent transition-colors" />
